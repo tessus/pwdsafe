@@ -1,0 +1,61 @@
+CONNECT TO TESSUS;
+
+
+
+------------------------------------------------
+-- DDL Statements for table "PWDLIST"
+------------------------------------------------
+ 
+ CREATE TABLE "PWDLIST"  (
+		  "ACCOUNT" VARCHAR(32) NOT NULL , 
+		  "USERID" VARCHAR(32) NOT NULL , 
+		  "PASSWORD" VARCHAR(32) FOR BIT DATA , 
+		  "DESCRIPTION" VARCHAR(64) ,
+		  "USR" VARCHAR(32) NOT NULL )   
+		 IN "DATA_4K" ; 
+
+ CREATE TABLE "PWDLOGIN"  (
+ 		  "USR" VARCHAR(32) NOT NULL , 
+ 		  "PWD" VARCHAR(32) NOT NULL ,
+ 		  "ADMIN" INTEGER NOT NULL WITH DEFAULT 0 )
+
+ 		 IN "DATA_4K" ; 
+
+
+ALTER TABLE "PWDLIST" 
+	ADD CONSTRAINT "PK_PWDLIST" PRIMARY KEY
+		("ACCOUNT", "USR");
+		
+ALTER TABLE "PWDLOGIN" 
+	ADD CONSTRAINT "PK_PWDLOGIN" PRIMARY KEY
+		("USR");
+
+
+
+
+
+
+
+
+--------------------------------------------
+-- Authorization Statements on Tables/Views 
+--------------------------------------------
+
+ 
+ GRANT INSERT ON TABLE "AT24020"."PWDLIST" TO USER "DB2USER" ;
+
+ GRANT SELECT ON TABLE "AT24020"."PWDLIST" TO USER "DB2USER" ;
+
+ GRANT UPDATE ON TABLE "AT24020"."PWDLIST" TO USER "DB2USER" ;
+ 
+ GRANT INSERT ON TABLE "AT24020"."PWDLOGIN" TO USER "DB2USER" ;
+ 
+ GRANT SELECT ON TABLE "AT24020"."PWDLOGIN" TO USER "DB2USER" ;
+ 
+ GRANT UPDATE ON TABLE "AT24020"."PWDLOGIN" TO USER "DB2USER" ;
+
+COMMIT WORK;
+
+CONNECT RESET;
+
+TERMINATE;

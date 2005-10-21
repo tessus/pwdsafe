@@ -1,0 +1,47 @@
+
+ CREATE TABLE "AT24020 "."TRIG"  (
+
+		  "C1" INTEGER , 
+
+		  "C2" VARCHAR(40) , 
+
+		  "C3" TIMESTAMP )   
+
+		 IN "DATA4K" ; 
+
+
+
+-------------------------------
+
+-- DDL Statements for Triggers
+
+-------------------------------
+
+
+
+CREATE TRIGGER AT24020.TRIG_INS AFTER  INSERT  ON AT24020.TRIG  REFERENCING
+
+ NEW AS n  FOR EACH ROW  MODE DB2SQL update at24020.trig set c3 = current
+
+timestamp where n.c1=c1;
+
+
+
+CREATE TRIGGER AT24020.TRIG_UPD AFTER  UPDATE OF C1, C2 ON AT24020.TRIG
+
+ REFERENCING  NEW AS n  FOR EACH ROW  MODE DB2SQL update at24020.trig set
+
+c3 = current timestamp where n.c1 = c1;
+
+
+
+
+
+
+Warning: You need to modify the db2look output script by adding
+
+REMOTE_AUTHID to the CREATE USER MAPPING statement(s)
+
+
+
+;
