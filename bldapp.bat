@@ -1,4 +1,7 @@
 @echo off
+
+rem $Id$
+
 rem  (C) COPYRIGHT International Business Machines Corp. 1996, 2000
 rem  All Rights Reserved.
 rem

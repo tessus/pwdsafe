@@ -1,3 +1,7 @@
+/*
+ * $Id$
+ */
+
 #ifndef PHP_MD5_H
 #define PHP_MD5_H
 
