@@ -1,5 +1,7 @@
-
 #! /bin/sh
+#
+# $Id$
+#
 #############################################################################
 # Licensed Materials - Property of IBM
 # 
@@ -31,10 +33,10 @@ fi
 # Precompile the program.
 if [ -f $1".sqc" ]
 then
-  db2 prep $1.sqc bindfile
+  db2 prep $1.sqc bindfile using ${1}L.bnd package using ${1}L
   if [ -f utilemb.sqc ]
   then
-    db2 prep utilemb.sqc
+    db2 prep utilemb.sqc bindfile using utilembL.bnd package using utilembL
   fi
 elif [ -f $1".sqC" ]
 then
@@ -49,7 +51,8 @@ then
 fi
 
 # Bind the program to the database.
-db2 bind $1.bnd
+db2 bind ${1}L.bnd
+db2 bind utilembL.bnd
 
 # Disconnect from the database.
 db2 connect reset
