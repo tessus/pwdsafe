@@ -2,13 +2,13 @@
  * $Id$
  */
 
+#ifdef LINUX
+#include <termios.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sqlca.h>
-#ifdef LINUX
-#include <curses.h>
-#endif
 #ifdef WIN32
 #include <conio.h>
 #endif
@@ -53,6 +53,10 @@ int main(int argc, char *argv[]) {
 
    EXEC SQL END DECLARE SECTION;
 
+#ifdef LINUX
+   struct termios initialrsettings, newrsettings;
+#endif
+
    unsigned int numsel = 999;       // menue var
    struct sqlca sqlca;              // sqlca structure
    int ch, i = 0;                   // vars for enc_pwd input
@@ -92,7 +96,7 @@ int main(int argc, char *argv[]) {
 
    user[0] = '\0';
    pwd[0] = '\0';
-   printf( "\nUser: "); scanf( "%s", user );
+   printf( "\nUser: "); fscanf( stdin, "%s", user );
    printf( "\nPlease enter the encryption password: " );
 
 #ifdef WIN32
@@ -121,7 +125,13 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef LINUX
-   scanf( "%s", enc_pwd );
+   enc_pwd[0] = '\0';
+   tcgetattr( fileno(stdin), &initialrsettings );
+   newrsettings = initialrsettings;
+   newrsettings.c_lflag &= ~ECHO;
+   tcsetattr( fileno(stdin), TCSAFLUSH, &newrsettings );
+   fscanf( stdin, "%s", enc_pwd );
+   tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
 #endif
 
    temp_pwd = php_md5( enc_pwd );
@@ -182,7 +192,7 @@ int main(int argc, char *argv[]) {
          printf("==> ");
 
          fflush(stdin);
-         scanf("%u", &numsel);
+         fscanf(stdin, "%u", &numsel);
          maxsel = 9;			// Max menue sections
          if( admin > 0 )
          {
@@ -199,8 +209,7 @@ int main(int argc, char *argv[]) {
 				      case 3:
 				          printf( "\nWhich account: " );
 				          acc[0] = '\0';
-						  fflush(stdin);
-						  gets( acc );
+						  fscanf( stdin, "%s", acc );
 
 						  account[0] = '\0';
 						  userid[0] = '\0';
@@ -241,7 +250,7 @@ int main(int argc, char *argv[]) {
 					      printf( "\nWhich account: " );
 					      acc[0] = '\0';
 					      fflush(stdin);
-						  gets( acc );
+						  fscanf( stdin, "%s", acc );
 
 						  account[0] = '\0';
 						  userid[0] = '\0';
@@ -353,12 +362,12 @@ int main(int argc, char *argv[]) {
 						  description[0] = '\0';
 						  fflush(stdin);
 
-						  printf( "\nAccount    : " ); gets( account );
+						  printf( "\nAccount    : " ); fscanf( stdin, "%s", account );
 						  if( strlen( account ) == 0 )
 						     break;
-						  printf( "Userid     : " ); gets( userid );
-						  printf( "Password   : " ); gets( password );
-   						  printf( "Description: " ); gets( description );
+						  printf( "Userid     : " ); fscanf( stdin, "%s", userid );
+						  printf( "Password   : " ); fscanf( stdin, "%s", password );
+   						  printf( "Description: " ); fscanf( stdin, "%s", description );
 
    						  // read description as sentence
 
@@ -385,7 +394,7 @@ int main(int argc, char *argv[]) {
 				          printf( "\nWhich account: " );
 						  acc[0] = '\0';
 						  fflush(stdin);
-						  gets( acc );
+						  fscanf( stdin, "%s", acc );
 
 						  EXEC SQL DECLARE c5 CURSOR FOR
 					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
@@ -423,14 +432,14 @@ int main(int argc, char *argv[]) {
 
 						      printf( "Update? (1/2/3/4/n) Main Menue (q)" );
 						      upd = 0;
-						      scanf( "%c", &upd );
+						      fscanf( stdin, "%c", &upd );
 
 						      fflush(stdin);
 
 						      switch( upd )
 						      {
 								  case '1':
-								     printf( "\nAccount: " ); gets( haccount );
+								     printf( "\nAccount: " ); fscanf( stdin, "%s", haccount );
 
 								     EXEC SQL UPDATE pwdsafe.pwdlist SET account = :haccount, ts = current timestamp
 									          WHERE CURRENT OF c5;
@@ -441,7 +450,7 @@ int main(int argc, char *argv[]) {
 									 strcpy( account, haccount );
 									 break;
 								  case '2':
-								     printf( "\nUserid: " ); gets( huserid );
+								     printf( "\nUserid: " ); fscanf( stdin, "%s", huserid );
 
 								     EXEC SQL UPDATE pwdsafe.pwdlist SET userid = :huserid, ts = current timestamp
 									          WHERE CURRENT OF c5;
@@ -450,7 +459,7 @@ int main(int argc, char *argv[]) {
 								     strcpy( userid, huserid );
 								     break;
 								  case '3':
-								     printf( "\nPassword: " ); gets( hpassword );
+								     printf( "\nPassword: " ); fscanf( stdin, "%s", hpassword );
 
 								     EXEC SQL UPDATE pwdsafe.pwdlist SET password = encrypt(:hpassword, :enc_pwd), ts = current timestamp
 									          WHERE CURRENT OF c5;
@@ -459,7 +468,7 @@ int main(int argc, char *argv[]) {
 								     strcpy( password, hpassword );
 								     break;
 								  case '4':
-								     printf( "\nDescription: " ); gets( hdescription );
+								     printf( "\nDescription: " ); fscanf( stdin, "%s", hdescription );
 
 								     EXEC SQL UPDATE pwdsafe.pwdlist SET description = :hdescription, ts = current timestamp
 									          WHERE CURRENT OF c5;
@@ -513,7 +522,7 @@ int main(int argc, char *argv[]) {
 				          printf( "\nWhich account: " );
 						  acc[0] = '\0';
 						  fflush(stdin);
-						  gets( acc );
+						  fscanf( stdin, "%s", acc );
 
 						  EXEC SQL DECLARE c4 CURSOR FOR
 					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
@@ -544,7 +553,7 @@ int main(int argc, char *argv[]) {
 						      printf( "Delete? (y/n) Main Menue (q)" );
 						      del = 0;
 						      fflush(stdin);
-						      scanf( "%c", &del );
+						      fscanf( stdin, "%c", &del );
 
 						      switch( del )
 						      {
@@ -593,8 +602,8 @@ int main(int argc, char *argv[]) {
 					  	  reguser[0] = '\0';
 					  	  regpwd[0] = '\0';
 
-					      printf( "\nUser    : " ); scanf( "%s", reguser );
-					  	  printf( "Pwd     : " ); scanf( "%s", regpwd );
+					      printf( "\nUser    : " ); fscanf( stdin, "%s", reguser );
+					  	  printf( "Pwd     : " ); fscanf( stdin, "%s", regpwd );
 
 					  	  if(strlen(regpwd) < 6)
 					  	  {
@@ -630,7 +639,7 @@ int main(int argc, char *argv[]) {
                           printf( "\nEnter [path]filename: " );
 						  filename[0] = '\0';
 						  fflush(stdin);
-						  gets( filename );
+						  fscanf( stdin, "%s", filename );
 
                           if( strlen( filename ) == 0 )
                              fp = fopen( "pwdfile.csv", "w" );
@@ -686,7 +695,7 @@ int main(int argc, char *argv[]) {
                           printf( "\nEnter [path]filename: " );
 						  filename[0] = '\0';
 						  fflush(stdin);
-						  gets( filename );
+						  fscanf( stdin, "%s", filename );
 
                           if( strlen( filename ) == 0 )
                              fp = fopen( "pwdfile.txt", "w" );
@@ -738,7 +747,7 @@ int main(int argc, char *argv[]) {
 				      case 9:
 					  	  regpwd[0] = '\0';
 
-					      printf( "\nNew password: " ); scanf( "%s", regpwd );
+					      printf( "\nNew password: " ); fscanf( stdin, "%s", regpwd );
 
 					  	  if(strlen(regpwd) < 6)
 					  	  {

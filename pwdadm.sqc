@@ -2,6 +2,9 @@
  * $Id$
  */
 
+#ifdef LINUX
+#include <termios.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,6 +40,10 @@ int main(int argc, char *argv[]) {
       	   char passwd[19];
       	   char db[19];
    EXEC SQL END DECLARE SECTION;
+
+#ifdef LINUX
+   struct termios initialrsettings, newrsettings;
+#endif
 
    unsigned int numsel = 999;       // menue var
    unsigned int maxsel = 0;
@@ -109,7 +116,7 @@ int main(int argc, char *argv[]) {
        printf("==> ");
 
        fflush(stdin);
-       scanf("%u", &numsel);
+       fscanf( stdin, "%u", &numsel);
        maxsel = 4;			// Max menue sections
 
        if (numsel < 0 || numsel > maxsel)
@@ -127,7 +134,7 @@ int main(int argc, char *argv[]) {
                 enc_pwd_final[0] = '\0';
 
 
-			    printf( "\nUser: "); scanf( "%s", user );
+			    printf( "\nUser: "); fscanf( stdin, "%s", user );
 	            i = 0;
 	            printf( "\nPlease enter the encryption password: " );
 
@@ -157,7 +164,13 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef LINUX
-   scanf( "%s", enc_pwd );
+   enc_pwd[0] = '\0';
+   tcgetattr( fileno(stdin), &initialrsettings );
+   newrsettings = initialrsettings;
+   newrsettings.c_lflag &= ~ECHO;
+   tcsetattr( fileno(stdin), TCSAFLUSH, &newrsettings );
+   fscanf( stdin, "%s", enc_pwd );
+   tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
 #endif
 
 
@@ -196,7 +209,13 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef LINUX
-   scanf( "%s", enc_pwd2 );
+   enc_pwd2[0] = '\0';
+   tcgetattr( fileno(stdin), &initialrsettings );
+   newrsettings = initialrsettings;
+   newrsettings.c_lflag &= ~ECHO;
+   tcsetattr( fileno(stdin), TCSAFLUSH, &newrsettings );
+   fscanf( stdin, "%s", enc_pwd2 );
+   tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
 #endif
 
 				if( strcmp( enc_pwd, enc_pwd2 ) != 0 )
@@ -234,7 +253,7 @@ int main(int argc, char *argv[]) {
 
                 huser[0] = '\0';
                 fflush(stdin);
-	            printf( "\nUser: " ); gets( huser );
+	            printf( "\nUser: " ); fscanf( stdin, "%s", huser );
 
 			    EXEC SQL UPDATE pwdsafe.pwdlogin SET admin = 1 WHERE usr = :huser;
 
@@ -257,7 +276,7 @@ int main(int argc, char *argv[]) {
 
                 huser[0] = '\0';
                 fflush(stdin);
-	            printf( "\nUser: " ); gets( huser );
+	            printf( "\nUser: " ); fscanf( stdin, "%s", huser );
 
  			    EXEC SQL UPDATE pwdsafe.pwdlogin SET admin = 0 WHERE usr = :huser;
 
