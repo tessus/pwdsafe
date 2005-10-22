@@ -6,10 +6,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sqlca.h>
+#ifdef LINUX
+#include <curses.h>
+#endif
+#ifdef WIN32
 #include <conio.h>
+#endif
 #include <ctype.h>
 #include "utilemb.h"
 #include "php_md5.h"
+
 
 
 EXEC SQL INCLUDE SQLCA;
@@ -88,10 +94,10 @@ int main(int argc, char *argv[]) {
    printf( "\nUser: "); scanf( "%s", user );
    printf( "\nPlease enter the encryption password: " );
 
-
+#ifdef WIN32
    do
       {
-         ch = _getch();
+         ch = getch();
          switch( ch )
          {
    		     case 8:
@@ -111,9 +117,12 @@ int main(int argc, char *argv[]) {
       } while( ch != '\r' );
 
    enc_pwd[i] = '\0';
+#endif
 
+#ifdef LINUX
+   scanf( "%s", enc_pwd );
+#endif
 
-   //scanf( "%s", enc_pwd );
    temp_pwd = php_md5( enc_pwd );
    enc_pwd2[0] = '\0';
    strcpy( enc_pwd2, temp_pwd );
