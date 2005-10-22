@@ -6,11 +6,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sqlca.h>
+#ifdef WIN32
 #include <conio.h>
+#endif
 #include <ctype.h>
 #include "utilemb.h"
 #include "php_md5.h"
 
+#define	RELEASE	"1.3"
+#define REVISION "$Revision$"
 
 EXEC SQL INCLUDE SQLCA;
 
@@ -88,7 +92,7 @@ int main(int argc, char *argv[]) {
    }
 
    printf("\n\n");
-   printf("PwdSafe Admin Tool v1.1\n");
+   printf("PwdSafe Admin Tool v%s (%s)\n",RELEASE,REVISION);
 
    do
    {
@@ -126,28 +130,36 @@ int main(int argc, char *argv[]) {
 			    printf( "\nUser: "); scanf( "%s", user );
 	            i = 0;
 	            printf( "\nPlease enter the encryption password: " );
-			    do
-	            {
-	               ch = _getch();
-				   switch( ch )
-				   {
-				       case 8:
-				          if( i != 0 )
-				          {
-				      	   i=i-1;
-				      	   printf( "d" );
-				      	}
-				          break;
-				       case 13:
-				          break;
-				       default:
-				          enc_pwd[i++] = ch;
-				          printf( "*" );
-				          break;
-				   }
-				} while( ch != '\r' );
 
-				enc_pwd[i] = '\0';
+#ifdef WIN32
+   do
+      {
+         ch = getch();
+         switch( ch )
+         {
+   		     case 8:
+   		        if( i != 0 )
+   		        {
+   		    	   i=i-1;
+   		    	   printf( "d" );
+   		    	}
+   		        break;
+   		     case 13:
+   		        break;
+   		     default:
+   		        enc_pwd[i++] = ch;
+   		        printf( "*" );
+   		        break;
+   	     }
+      } while( ch != '\r' );
+
+   enc_pwd[i] = '\0';
+#endif
+
+#ifdef LINUX
+   scanf( "%s", enc_pwd );
+#endif
+
 
 				if(strlen(enc_pwd) < 6)
 				{
