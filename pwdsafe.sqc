@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
 #ifdef WIN32
    do
       {
-         ch = getch();
+         ch = _getch();
          switch( ch )
          {
    		     case 8:
