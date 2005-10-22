@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
 #ifdef WIN32
    do
       {
-         ch = getch();
+         ch = _getch();
          switch( ch )
          {
    		     case 8:
@@ -169,28 +169,35 @@ int main(int argc, char *argv[]) {
 
 				i = 0;
 				printf( "\nPlease enter the encryption password again: " );
-				do
-				{
-				   ch = _getch();
-				   switch( ch )
-				   {
-				        case 8:
-				           if( i != 0 )
-				           {
-				       	   i=i-1;
-				       	   printf( "d" );
-				       	}
-				           break;
-				        case 13:
-				           break;
-				        default:
-				           enc_pwd2[i++] = ch;
-				           printf( "*" );
-				           break;
-				   }
-				} while( ch != '\r' );
 
-				enc_pwd2[i] = '\0';
+#ifdef WIN32
+   do
+      {
+         ch = _getch();
+         switch( ch )
+         {
+   		     case 8:
+   		        if( i != 0 )
+   		        {
+   		    	   i=i-1;
+   		    	   printf( "d" );
+   		    	}
+   		        break;
+   		     case 13:
+   		        break;
+   		     default:
+   		        enc_pwd2[i++] = ch;
+   		        printf( "*" );
+   		        break;
+   	     }
+      } while( ch != '\r' );
+
+   enc_pwd2[i] = '\0';
+#endif
+
+#ifdef LINUX
+   scanf( "%s", enc_pwd2 );
+#endif
 
 				if( strcmp( enc_pwd, enc_pwd2 ) != 0 )
 				{
