@@ -27,11 +27,11 @@ goto compile_nonembedded
 
 :compile_embedded
 call embprep %1 %2 %3 %4
-gcc -c -I%DB2PATH%\include -I%MINGW%\include utilemb.c -o utilemb.o
+gcc -c -DWIN32 -I%DB2PATH%\include -I%MINGW%\include utilemb.c -o utilemb.o
 goto compile
 
 :compile_nonembedded
-gcc -c -I%DB2PATH%\include -I%MINGW%\include utilapi.c -o utilapi.o
+gcc -c -DWIN32 -I%DB2PATH%\include -I%MINGW%\include utilapi.c -o utilapi.o
 goto compile
 
 :compile

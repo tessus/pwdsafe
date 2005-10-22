@@ -1,4 +1,7 @@
 #! /bin/sh
+#
+# $Id$
+#
 #############################################################################
 # Licensed Materials - Property of IBM
 #
@@ -21,11 +24,11 @@ CC=gcc
 
 # Set DB2PATH to where DB2 will be accessed.
 # The default is the standard instance path.
-DB2PATH=$HOME/sqllib
+DB2PATH=/home/db2inst1/sqllib
 
 # Default compiler/linker settings
 LIB="lib"
-EXTRA_C_FLAGS=""
+EXTRA_C_FLAGS="-DLINUX"
 
 # Determine our bitwidth (32 or 64) and hardware platform
 BITWIDTH=`LANG=C db2level | awk '/bits/{print $5}'`
