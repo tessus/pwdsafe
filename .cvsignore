@@ -2,3 +2,7 @@
 *.c
 *.o
 *.exe
+pwdsafe
+pwdinit
+pwdadm
+pwdadmw
