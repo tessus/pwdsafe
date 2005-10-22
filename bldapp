@@ -1,0 +1,96 @@
+#! /bin/sh
+#############################################################################
+# Licensed Materials - Property of IBM
+#
+# Governed under the terms of the International
+# License Agreement for Non-Warranted Sample Code.
+#
+# (C) COPYRIGHT International Business Machines Corp. 1995, 2002
+# All Rights Reserved.
+#
+# US Government Users Restricted Rights - Use, duplication or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+############################################################################# 
+# SCRIPT: bldapp
+# Builds C applications for Linux
+# Usage: bldapp <prog_name> [ <db_name> [ <userid> <password> ]]
+
+# Select a compiler to use
+CC=gcc
+#CC=xlc_r
+
+# Set DB2PATH to where DB2 will be accessed.
+# The default is the standard instance path.
+DB2PATH=$HOME/sqllib
+
+# Default compiler/linker settings
+LIB="lib"
+EXTRA_C_FLAGS=""
+
+# Determine our bitwidth (32 or 64) and hardware platform
+BITWIDTH=`LANG=C db2level | awk '/bits/{print $5}'`
+HARDWAREPLAT=`uname -m`
+
+if [ $BITWIDTH = "\"32\"" ]
+then
+  LIB="lib32"
+fi
+
+# Set up compiler switches according to the current environment
+if [ "$HARDWAREPLAT" = "x86_64" ] || [ "$HARDWAREPLAT" = "ppc64" ]
+then
+  if [ $BITWIDTH = "\"64\"" ]
+  then
+    if [ "$CC" = "xlc_r" ]
+    then
+      EXTRA_C_FLAGS="-q64"
+    else
+      EXTRA_C_FLAGS="-m64"
+    fi
+  else
+    if [ "$HARDWAREPLAT" != "ppc64" ]
+    then
+      EXTRA_C_FLAGS="-m32"
+    fi
+  fi
+fi
+
+# The runtime path is recommended for all applications.
+# If you need to use LD_LIBRARY_PATH, unset the RUNTIME
+# variable by commenting out the following line.
+RUNTIME=true
+
+if [ "$RUNTIME" != "" ]
+then
+  EXTRA_LFLAG="-Wl,-rpath,$DB2PATH/$LIB"
+else
+  EXTRA_LFLAG=""
+fi
+
+# If an embedded SQL program, precompile and bind it.
+# Note: some .sqc files contain no SQL but link in 
+# utilemb.sqc, so if you get this warning, ignore it:
+# SQL0053W  No SQL statements were found in the program.
+if [ -f $1".sqc" ]
+then
+  ./embprep $1 $2 $3 $4
+  # Compile the utilemb.c error-checking utility.
+  $CC $EXTRA_C_FLAGS -I$DB2PATH/include -c utilemb.c
+else
+  # Compile the utilapi.c error-checking utility.
+  $CC $EXTRA_C_FLAGS -I$DB2PATH/include -c utilapi.c
+fi
+
+# Compile the program.
+$CC $EXTRA_C_FLAGS -I$DB2PATH/include -c $1.c
+
+if [ -f $1".sqc" ]
+then
+  # Link the program with utilemb.o.
+  $CC $EXTRA_C_FLAGS -o $1 $1.o utilemb.o $EXTRA_LFLAG \
+    -L$DB2PATH/$LIB -ldb2
+else
+  # Link the program with utilapi.o.
+  $CC $EXTRA_C_FLAGS -o $1 $1.o utilapi.o $EXTRA_LFLAG \
+    -L$DB2PATH/$LIB -ldb2
+fi
