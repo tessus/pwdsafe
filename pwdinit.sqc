@@ -127,7 +127,8 @@ int main(int argc, char *argv[]) {
 		  \"USERID\" VARCHAR(32) NOT NULL , 		\
 		  \"PASSWORD\" VARCHAR(32) FOR BIT DATA , 	\
 		  \"DESCRIPTION\" VARCHAR(64) ,				\
-		  \"USR\" VARCHAR(32) NOT NULL )"
+		  \"USR\" VARCHAR(32) NOT NULL,				\
+		  \"TS\" TIMESTAMP )"
 
 	   );
 
@@ -148,7 +149,8 @@ int main(int argc, char *argv[]) {
 		  \"USERID\" VARCHAR(32) NOT NULL , 		\
 		  \"PASSWORD\" VARCHAR(32) FOR BIT DATA , 	\
 		  \"DESCRIPTION\" VARCHAR(64) ,				\
-		  \"USR\" VARCHAR(32) NOT NULL ) IN \"%s\"", tbspace );
+		  \"USR\" VARCHAR(32) NOT NULL,				\
+		  \"TS\" TIMESTAMP ) IN \"%s\"", tbspace );
 
        execi( hst );
 
