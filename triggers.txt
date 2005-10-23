@@ -1,3 +1,7 @@
+-------------------------------
+-- Testing triggers
+-------------------------------
+
 
  CREATE TABLE "AT24020 "."TRIG"  (
 
@@ -33,15 +37,3 @@ CREATE TRIGGER AT24020.TRIG_UPD AFTER  UPDATE OF C1, C2 ON AT24020.TRIG
 
 c3 = current timestamp where n.c1 = c1;
 
-
-
-
-
-
-Warning: You need to modify the db2look output script by adding
-
-REMOTE_AUTHID to the CREATE USER MAPPING statement(s)
-
-
-
-;
