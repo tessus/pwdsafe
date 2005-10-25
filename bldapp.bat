@@ -41,24 +41,24 @@ rem SQL0053W  No SQL statements were found in the program.
 call embprep %1 %2 %3 %4
 rem  Compile the program.
 if exist "%1.cxx" goto cpp_emb
-%BLDCOMP% -Zi -Od -c -W2 -DWIN32 %1.c utilemb.c
+%BLDCOMP% /G7 -c -DWIN32 %1.c utilemb.c
 goto link_embedded
 :cpp_emb
-%BLDCOMP% -Zi -Od -c -W2 -DWIN32 %1.cxx utilemb.cxx
+%BLDCOMP% /G7 -c -DWIN32 %1.cxx utilemb.cxx
 rem Link the program.
 :link_embedded
-link -debug -out:%1.exe %1.obj utilemb.obj db2api.lib
+link -out:%1.exe %1.obj utilemb.obj db2api.lib
 goto exit
 
 :non_embedded
 rem  Compile the program.
 if exist "%1.cxx" goto cpp_non
-%BLDCOMP% -Zi -Od -c -W2 -DWIN32 %1.c utilapi.c
+%BLDCOMP% /G7 -c -DWIN32 %1.c utilapi.c
 goto link_non_embedded
 :cpp_non
-%BLDCOMP% -Zi -Od -c -W2 -DWIN32 %1.cxx utilapi.cxx
+%BLDCOMP% /G7 -c -DWIN32 %1.cxx utilapi.cxx
 rem Link the program.
 :link_non_embedded
-link -debug -out:%1.exe %1.obj utilapi.obj db2api.lib
+link -out:%1.exe %1.obj utilapi.obj db2api.lib
 :exit
 @echo on
