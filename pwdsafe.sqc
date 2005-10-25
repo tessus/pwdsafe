@@ -872,8 +872,11 @@ int DataExport(char *dataFileName, char *user)
   exportParmStruct.piActionString    = pAction;
   exportParmStruct.piFileType        = SQL_IXF;
   exportParmStruct.piFileTypeMod     = NULL;
-  //exportParmStruct.piMsgFileName     = msgFileName;
+#ifdef WIN32
+  exportParmStruct.piMsgFileName     = msgFileName;
+#else
   exportParmStruct.piMsgFileName     = "/dev/null";
+#endif
   exportParmStruct.iCallerAction     = SQLU_INITIAL;
   exportParmStruct.poExportInfoOut   = &outputInfo;
 
@@ -927,8 +930,11 @@ int DataImport(char *dataFileName)
   importParmStruct.piActionString    = pAction;
   importParmStruct.piFileType        = SQL_IXF;
   importParmStruct.piFileTypeMod     = NULL;
-  //importParmStruct.piMsgFileName     = msgFileName;
+#ifdef WIN32
+  importParmStruct.piMsgFileName     = msgFileName;
+#else
   importParmStruct.piMsgFileName     = "/dev/null";
+#endif
   importParmStruct.piImportInfoIn    = &inputInfo;
   importParmStruct.poImportInfoOut   = &outputInfo;
   importParmStruct.piNullIndicators  = NULL;
