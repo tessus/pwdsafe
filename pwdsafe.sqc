@@ -23,8 +23,16 @@
 #define	RELEASE	"1.3"
 #define REVISION "$Revision$"
 
+#define MAX_ACC_LEN		32
+#define MAX_UID_LEN		32
+#define MAX_PWD_LEN		32
+#define MAX_DESC_LEN	64
+
+#define MAX_PATH_LEN	255
+
 int DataExport(char *, char *);
 int DataImport(char *);
+char* getstr( int len );
 
 EXEC SQL INCLUDE SQLCA;
 
@@ -63,18 +71,15 @@ int main(int argc, char *argv[]) {
    struct termios initialrsettings, newrsettings;
 #endif
 
-   int numsel = 0;					// menue var
-   char numselh[10];				// menue help var
+   int maxsel, numsel = 0;			// menue var;
+   char numselh[5];					// menue help var
    struct sqlca sqlca;				// sqlca structure
    int ch, i = 0;					// vars for enc_pwd input
    char *temp_pwd;					// temp var for php_md5 func
-   int del, upd;			    	// delete and update var (y/n)
+   char del[5], upd[5];		    	// delete and update var (y/n)
    FILE *fp;						// filepointer fp
-   char filename[255];				// var for filename
-   char line[1024];					// buffer for read line
-   char *pstr;
-
-   unsigned int maxsel;
+   char filename[MAX_PATH_LEN];		// var for filename
+   //char *pstr;
 
    // init connection vars
 
@@ -102,13 +107,11 @@ int main(int argc, char *argv[]) {
           break;
    }
 
-
    user[0] = '\0';
    pwd[0] = '\0';
+
    printf( "\nUser: ");
-   //fscanf( stdin, "%s", user );
-   fgets( user, 32, stdin );
-   user[strlen(user)-1] = '\0';
+   strcpy( user, getstr(MAX_UID_LEN) );
    printf( "\nPlease enter the encryption password: " );
 
 #ifdef WIN32
@@ -142,8 +145,7 @@ int main(int argc, char *argv[]) {
    newrsettings = initialrsettings;
    newrsettings.c_lflag &= ~ECHO;
    tcsetattr( fileno(stdin), TCSAFLUSH, &newrsettings );
-   //fscanf( stdin, "%s", enc_pwd );
-   fgets( enc_pwd, 32, stdin );
+   strcpy( enc_pwd, getstr(MAX_PWD_LEN) );
    tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
 #endif
 
@@ -207,10 +209,9 @@ int main(int argc, char *argv[]) {
          printf("==> ");
 
          fflush(stdin);
-         //fscanf(stdin, "%d", &numsel);
 
-         fgets( numselh, 10, stdin );
-         numselh[strlen(numselh)-1] = '\0';
+         strcpy( numselh, getstr(5) );
+
          numsel = atoi( numselh );
          if( numsel == 0 )
             numsel = -1;
@@ -234,7 +235,11 @@ int main(int argc, char *argv[]) {
 				      case 3:
 				          printf( "\nWhich account: " );
 				          acc[0] = '\0';
-						  fscanf( stdin, "%s", acc );
+
+						  strcpy( acc, getstr(MAX_ACC_LEN) );
+
+						  if( strlen( acc ) == 0 )
+						     break;
 
 						  account[0] = '\0';
 						  userid[0] = '\0';
@@ -275,9 +280,11 @@ int main(int argc, char *argv[]) {
 					      printf( "\nWhich account: " );
 					      acc[0] = '\0';
 					      fflush(stdin);
-						  fgets( acc, 32, stdin );
-						  acc[strlen(acc)-1] = '\0';
-						  //fscanf( stdin, "%s", acc );
+
+					      strcpy( acc, getstr(MAX_ACC_LEN) );
+
+						  if( strlen( acc ) == 0 )
+						     break;
 
 						  account[0] = '\0';
 						  userid[0] = '\0';
@@ -291,13 +298,6 @@ int main(int argc, char *argv[]) {
 						          WHERE usr = :user AND ucase(account) LIKE ucase('%' concat :acc concat '%')
 						          ORDER BY account;
 
-/*
-						  EXEC SQL DECLARE c2 CURSOR FOR
-						  		  SELECT account, userid, decrypt_char(password, :enc_pwd), description
-						  			  FROM pwdsafe.pwdlist
-						  		  WHERE usr = :user AND account LIKE ':acc'
-						          ORDER BY account;
-*/
 						  EXEC SQL OPEN c2;
 					      EMB_SQL_CHECK("OPEN CURSOR");
 
@@ -389,12 +389,12 @@ int main(int argc, char *argv[]) {
 						  description[0] = '\0';
 						  fflush(stdin);
 
-						  printf( "\nAccount    : " ); fscanf( stdin, "%s", account );
+						  printf( "\nAccount    : " ); strcpy( account, getstr(MAX_ACC_LEN) );
 						  if( strlen( account ) == 0 )
 						     break;
-						  printf( "Userid     : " ); fscanf( stdin, "%s", userid );
-						  printf( "Password   : " ); fscanf( stdin, "%s", password );
-   						  printf( "Description: " ); fscanf( stdin, "%s", description );
+						  printf( "Userid     : " ); strcpy( userid, getstr(MAX_UID_LEN) );
+						  printf( "Password   : " ); strcpy( password, getstr(MAX_PWD_LEN) );
+   						  printf( "Description: " ); strcpy( description, getstr(MAX_DESC_LEN) );
 
    						  // read description as sentence
 
@@ -421,7 +421,11 @@ int main(int argc, char *argv[]) {
 				          printf( "\nWhich account: " );
 						  acc[0] = '\0';
 						  fflush(stdin);
-						  fscanf( stdin, "%s", acc );
+
+						  strcpy( acc, getstr(MAX_ACC_LEN) );
+
+						  if( strlen( acc ) == 0 )
+						     break;
 
 						  EXEC SQL DECLARE c5 CURSOR FOR
 					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
@@ -458,26 +462,29 @@ int main(int argc, char *argv[]) {
    						 	  printf( "\n" );
 
 						      printf( "Update? (1/2/3/4/n) Main Menue (q)" );
-						      upd = 0;
-						      fscanf( stdin, "%c", &upd );
+
+						      upd[0] = '\0';
 
 						      fflush(stdin);
+						      strcpy( upd, getstr(5) );
 
-						      switch( upd )
+						      switch( upd[0] )
 						      {
 								  case '1':
-								     printf( "\nAccount: " ); fscanf( stdin, "%s", haccount );
+								     printf( "\nAccount: " ); strcpy( haccount, getstr(MAX_ACC_LEN) );
 
 								     EXEC SQL UPDATE pwdsafe.pwdlist SET account = :haccount, ts = current timestamp
 									          WHERE CURRENT OF c5;
 
 									 if( sqlca.sqlcode == -803 )
-									    printf( "\nAccount already exists.\n" );
-
-									 strcpy( account, haccount );
+									 {
+										 printf( "\nAccount already exists.\n" );
+									 } else {
+										 strcpy( account, haccount );
+									 }
 									 break;
 								  case '2':
-								     printf( "\nUserid: " ); fscanf( stdin, "%s", huserid );
+								     printf( "\nUserid: " ); strcpy( huserid, getstr(MAX_UID_LEN) );
 
 								     EXEC SQL UPDATE pwdsafe.pwdlist SET userid = :huserid, ts = current timestamp
 									          WHERE CURRENT OF c5;
@@ -486,7 +493,7 @@ int main(int argc, char *argv[]) {
 								     strcpy( userid, huserid );
 								     break;
 								  case '3':
-								     printf( "\nPassword: " ); fscanf( stdin, "%s", hpassword );
+								     printf( "\nPassword: " ); strcpy( hpassword, getstr(MAX_PWD_LEN) );
 
 								     EXEC SQL UPDATE pwdsafe.pwdlist SET password = encrypt(:hpassword, :enc_pwd), ts = current timestamp
 									          WHERE CURRENT OF c5;
@@ -495,7 +502,7 @@ int main(int argc, char *argv[]) {
 								     strcpy( password, hpassword );
 								     break;
 								  case '4':
-								     printf( "\nDescription: " ); fscanf( stdin, "%s", hdescription );
+								     printf( "\nDescription: " ); strcpy( hdescription, getstr(MAX_DESC_LEN) );
 
 								     EXEC SQL UPDATE pwdsafe.pwdlist SET description = :hdescription, ts = current timestamp
 									          WHERE CURRENT OF c5;
@@ -507,9 +514,10 @@ int main(int argc, char *argv[]) {
 								     goto eloop_upd;
 								     break;
 								  default:
+								     upd[0] = 'n';
 								     break;
 							  }
-						      } while ( upd != 'n' );
+						      } while ( upd[0] != 'n' );
 							  i++;
 
 						  } while ( 1 );
@@ -549,7 +557,11 @@ int main(int argc, char *argv[]) {
 				          printf( "\nWhich account: " );
 						  acc[0] = '\0';
 						  fflush(stdin);
-						  fscanf( stdin, "%s", acc );
+
+						  strcpy( acc, getstr(MAX_ACC_LEN) );
+
+						  if( strlen( acc ) == 0 )
+						     break;
 
 						  EXEC SQL DECLARE c4 CURSOR FOR
 					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
@@ -578,11 +590,13 @@ int main(int argc, char *argv[]) {
    						 	  printf( "\n" );
 
 						      printf( "Delete? (y/n) Main Menue (q)" );
-						      del = 0;
-						      fflush(stdin);
-						      fscanf( stdin, "%c", &del );
 
-						      switch( del )
+						      del[0] = '\0';
+
+						      fflush(stdin);
+						      strcpy( del, getstr(5) );
+
+						      switch( del[0] )
 						      {
 								  case 'y':
 								     EXEC SQL DELETE FROM pwdsafe.pwdlist WHERE CURRENT OF c4;
@@ -629,8 +643,8 @@ int main(int argc, char *argv[]) {
 					  	  reguser[0] = '\0';
 					  	  regpwd[0] = '\0';
 
-					      printf( "\nUser    : " ); fscanf( stdin, "%s", reguser );
-					  	  printf( "Pwd     : " ); fscanf( stdin, "%s", regpwd );
+					      printf( "\nUser    : " ); strcpy( reguser, getstr(MAX_UID_LEN) );
+					  	  printf( "Pwd     : " ); strcpy( regpwd, getstr(MAX_PWD_LEN) );
 
 					  	  if(strlen(regpwd) < 6)
 					  	  {
@@ -665,11 +679,12 @@ int main(int argc, char *argv[]) {
                       case 7:
                           printf( "\nEnter [path]filename: " );
 						  filename[0] = '\0';
+
 						  fflush(stdin);
-						  fscanf( stdin, "%s", filename );
+						  strcpy( filename, getstr(MAX_PATH_LEN) );
 
                           if( strlen( filename ) == 0 )
-                             fp = fopen( "pwdfile.csv", "w" );
+                             break; //fp = fopen( "pwdfile.csv", "w" );
 						  else
                              fp = fopen( filename, "w" );
 
@@ -721,11 +736,12 @@ int main(int argc, char *argv[]) {
                       case 8:
                           printf( "\nEnter [path]filename: " );
 						  filename[0] = '\0';
+
 						  fflush(stdin);
-						  fscanf( stdin, "%s", filename );
+						  strcpy( filename, getstr(MAX_PATH_LEN) );
 
                           if( strlen( filename ) == 0 )
-                             fp = fopen( "pwdfile.txt", "w" );
+                             break; //fp = fopen( "pwdfile.txt", "w" );
 						  else
                              fp = fopen( filename, "w" );
 
@@ -774,7 +790,7 @@ int main(int argc, char *argv[]) {
 				      case 9:
 					  	  regpwd[0] = '\0';
 
-					      printf( "\nNew password: " ); fscanf( stdin, "%s", regpwd );
+					      printf( "\nNew password: " ); strcpy( regpwd, getstr(MAX_PWD_LEN) );
 
 					  	  if(strlen(regpwd) < 6)
 					  	  {
@@ -809,21 +825,21 @@ int main(int argc, char *argv[]) {
 
 					  // Export for sync
 					  case 10:
-                          printf( "\nEnter [path]filename: " );
-						  filename[0] = '\0';
-						  fflush(stdin);
-						  fscanf( stdin, "%s", filename );
+					      printf( "\nEnter [path]filename: " );
+					      filename[0] = '\0';
 
-                          // Export Data
+						  fflush(stdin);
+						  strcpy( filename, getstr(MAX_PATH_LEN) );
+
+						  if( strlen( filename ) == 0 )
+						     break;
 
                           DataExport( filename, user );
 
 						  break;
 
-
 					  // Import and sync
 					  case 11:
-
 					      EXEC SQL CREATE TABLE "PWDSAFE"."TPWDLIST" LIKE pwdsafe.pwdlist;
 
 					      if( sqlca.sqlcode == -601 )
@@ -833,16 +849,18 @@ int main(int argc, char *argv[]) {
 							  EXEC SQL COMMIT;
 						  }
 
-                          /*
-                          printf( "\nEnter [path]filename: " );
+						  /*
+						  printf( "\nEnter [path]filename: " );
 						  filename[0] = '\0';
+
 						  fflush(stdin);
-						  fscanf( stdin, "%s", filename );
+						  strcpy( filename, getstr(MAX_PATH_LEN) );
+
+						  if( strlen( filename ) == 0 )
+						     break;
 						  */
 
-                          // Import Data
-
-                          //DataImport( filename );
+						  //DataImport( filename );
 
 						  break;
 
@@ -869,7 +887,7 @@ int DataExport(char *dataFileName, char *user)
   struct sqldcol dataDescriptor = {0};
   char actionString[256];
   struct sqllob *pAction = {0};
-  char msgFileName[255];
+  char msgFileName[MAX_PATH_LEN];
   struct db2ExportOut outputInfo = {0};
   struct db2ExportStruct exportParmStruct = {0};
 
@@ -919,7 +937,7 @@ int DataImport(char *dataFileName)
   struct sqldcol dataDescriptor = {0};
   char actionString[256];
   struct sqlchar *pAction = {0};
-  char msgFileName[255];
+  char msgFileName[MAX_PATH_LEN];
   struct db2ImportIn inputInfo = {0};
   struct db2ImportOut outputInfo = {0};
   struct db2ImportStruct importParmStruct = {0};
@@ -974,3 +992,15 @@ int DataImport(char *dataFileName)
 
   return 0;
 } /* DataImport */
+
+char* getstr( int len )
+{
+	char *result;
+
+	result = (char*)malloc(len*sizeof(char));
+
+	fgets( result, len, stdin );
+	result[strlen(result)-1] = '\0';
+
+	return result;
+}
