@@ -1025,6 +1025,8 @@ int main(int argc, char *argv[]) {
 						  EXEC SQL CLOSE u2;
 						  EMB_SQL_CHECK("CLOSE CURSOR u2");
 
+						  EXEC SQL DROP TABLE "PWDSAFE"."TPWDLIST";
+
 						  break;
 
 				      default:
