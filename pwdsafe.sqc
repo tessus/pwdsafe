@@ -24,7 +24,7 @@
 #define REVISION "$Revision$"
 
 int DataExport(char *, char *);
-//int DataImport(char *);
+int DataImport(char *);
 
 EXEC SQL INCLUDE SQLCA;
 
@@ -34,8 +34,8 @@ int main(int argc, char *argv[]) {
    EXEC SQL BEGIN DECLARE SECTION;
            char reguser[32];
            char regpwd[32];
-           char user[32];           // var for actual user
-           char pwd[34];            // host var for hashed pwd in pwdsafe.pwdlogin
+           char user[32];			// var for actual user
+           char pwd[34];			// host var for hashed pwd in pwdsafe.pwdlogin
            short admin;				// host var, if user is admin -> allow register new users
            short there;				// host var to check if tables are there
            char account[32];
@@ -46,13 +46,13 @@ int main(int argc, char *argv[]) {
 		   char huserid[32];
 		   char hpassword[32];
            char hdescription[64];
-           char enc_pwd[32];        // pwd entered
-           char enc_pwd2[33];       // md5 hashed pwd
-           char acc[32];            // host var for where clause
+           char enc_pwd[32];		// pwd entered
+           char enc_pwd2[33];		// md5 hashed pwd
+           char acc[32];			// host var for where clause
            char ts[32];
            short int tsind;			// indicator var for ts
 
-           char uid[9];             // connection vars
+           char uid[9];				// connection vars
            char passwd[19];
            char db[19];
 
@@ -63,10 +63,11 @@ int main(int argc, char *argv[]) {
    struct termios initialrsettings, newrsettings;
 #endif
 
-   unsigned int numsel = 999;       // menue var
-   struct sqlca sqlca;              // sqlca structure
-   int ch, i = 0;                   // vars for enc_pwd input
-   char *temp_pwd;                  // temp var for php_md5 func
+   int numsel = 0;					// menue var
+   char numselh[10];				// menue help var
+   struct sqlca sqlca;				// sqlca structure
+   int ch, i = 0;					// vars for enc_pwd input
+   char *temp_pwd;					// temp var for php_md5 func
    int del, upd;			    	// delete and update var (y/n)
    FILE *fp;						// filepointer fp
    char filename[255];				// var for filename
@@ -104,7 +105,9 @@ int main(int argc, char *argv[]) {
 
    user[0] = '\0';
    pwd[0] = '\0';
-   printf( "\nUser: "); fscanf( stdin, "%s", user );
+   printf( "\nUser: ");
+   fscanf( stdin, "%s", user );
+   //fgets( user, 32, stdin );
    printf( "\nPlease enter the encryption password: " );
 
 #ifdef WIN32
@@ -139,6 +142,7 @@ int main(int argc, char *argv[]) {
    newrsettings.c_lflag &= ~ECHO;
    tcsetattr( fileno(stdin), TCSAFLUSH, &newrsettings );
    fscanf( stdin, "%s", enc_pwd );
+   //fgets( enc_pwd, 32, stdin );
    tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
 #endif
 
@@ -202,7 +206,13 @@ int main(int argc, char *argv[]) {
          printf("==> ");
 
          fflush(stdin);
-         fscanf(stdin, "%u", &numsel);
+         fscanf(stdin, "%d", &numsel);
+         /*
+         fgets( numselh, 10, stdin );
+         numsel = atoi( numselh );
+         if( numsel == 0 )
+            numsel = -1;
+         */
          maxsel = 11;			// Max menue sections
          if( admin > 0 )
          {
@@ -260,6 +270,7 @@ int main(int argc, char *argv[]) {
 					      printf( "\nWhich account: " );
 					      acc[0] = '\0';
 					      fflush(stdin);
+						  //fgets( acc, 32, stdin );
 						  fscanf( stdin, "%s", acc );
 
 						  account[0] = '\0';
