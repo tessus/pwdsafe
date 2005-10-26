@@ -36,7 +36,7 @@ goto case3
 if exist "%1.sqx" goto cpp
 if exist "%1.sqb" goto cob
 db2 prep %1.sqc bindfile sqlerror continue validate run
-if exist "utilemb.sqc" db2 prep utilemb.sqc
+if exist "utilemb.sqc" db2 prep utilemb.sqc bindfile
 goto bind_step
 :cpp
 db2 prep %1.sqx bindfile
@@ -47,6 +47,7 @@ db2 prep %1.sqb bindfile
 
 :bind_step
 db2 bind %1.bnd blocking all sqlerror continue validate run
+db2 bind utilemb.bnd
 db2 connect reset 
 
 goto exit
