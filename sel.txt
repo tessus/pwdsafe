@@ -1,1 +1,0 @@
-select account, userid, decrypt_char(password, 'xxxxxxxxx'), description from pwdlist where usr='tessus'
