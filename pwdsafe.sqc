@@ -59,6 +59,8 @@ int main(int argc, char *argv[]) {
            char acc[32];			// host var for where clause
            char ts[32];
            short int tsind;			// indicator var for ts
+           short int recind[2];		// indicator var for password and description
+
 
            char uid[9];				// connection vars
            char passwd[19];
@@ -76,10 +78,11 @@ int main(int argc, char *argv[]) {
    struct sqlca sqlca;				// sqlca structure
    int ch, i = 0;					// vars for enc_pwd input
    char *temp_pwd;					// temp var for php_md5 func
-   char del[5], upd[5];		    	// delete and update var (y/n)
+   char del[5], upd[5], tmp[5];    	// delete and update var (y/n)
    FILE *fp;						// filepointer fp
    char filename[MAX_PATH_LEN];		// var for filename
-   //char *pstr;
+   char prompt, preview;
+   int sync = 0;
 
    // init connection vars
 
@@ -154,13 +157,9 @@ int main(int argc, char *argv[]) {
    strcpy( enc_pwd2, temp_pwd );
    free( temp_pwd );
 
-   //printf( "\n%s\n%s\n", user, enc_pwd2 );  // debug
-
    EXEC SQL SELECT pwd, admin INTO :pwd, :admin
        FROM pwdsafe.pwdlogin
        WHERE usr = :user;
-
-   //printf( "\n%s\n%s-\n%s-\n", user, enc_pwd2, pwd );  // debug
 
    if( sqlca.sqlcode == 100 )
    {
@@ -461,7 +460,7 @@ int main(int argc, char *argv[]) {
 							  printf( "\n4. Description: %s", description );
    						 	  printf( "\n" );
 
-						      printf( "Update? (1/2/3/4/n) Main Menue (q)" );
+						      printf( "\n Update? (1/2/3/4/N) Main Menue (q)" );
 
 						      upd[0] = '\0';
 
@@ -519,6 +518,7 @@ int main(int argc, char *argv[]) {
 							  }
 						      } while ( upd[0] != 'n' );
 							  i++;
+							  EXEC SQL COMMIT;
 
 						  } while ( 1 );
 
@@ -589,7 +589,7 @@ int main(int argc, char *argv[]) {
 							  printf( "\nDescription: %s", description );
    						 	  printf( "\n" );
 
-						      printf( "Delete? (y/n) Main Menue (q)" );
+						      printf( "\n Delete? (y/N) Main Menue (q)" );
 
 						      del[0] = '\0';
 
@@ -844,12 +844,10 @@ int main(int argc, char *argv[]) {
 
 					      if( sqlca.sqlcode == -601 )
 					      {
-							  printf( "\nTable already exists.\n" );
-							  //EXEC SQL DELETE FROM "PWDSAFE"."TPWDLIST";
+							  EXEC SQL DELETE FROM "PWDSAFE"."TPWDLIST";
 							  EXEC SQL COMMIT;
 						  }
 
-						  /*
 						  printf( "\nEnter [path]filename: " );
 						  filename[0] = '\0';
 
@@ -858,9 +856,174 @@ int main(int argc, char *argv[]) {
 
 						  if( strlen( filename ) == 0 )
 						     break;
-						  */
 
-						  //DataImport( filename );
+						  DataImport( filename );
+
+						  EXEC SQL DECLARE u1 CURSOR FOR
+						          SELECT l.account, l.userid, decrypt_char(l.password, :enc_pwd), l.description,
+						                 t.account, t.userid, decrypt_char(t.password, :enc_pwd), t.description
+						          FROM pwdsafe.pwdlist l, pwdsafe.tpwdlist t
+								  WHERE l.account = t.account AND l.usr = t.usr AND
+								  l.usr = :user AND
+								  (
+								  l.ts < t.ts OR
+								  l.ts IS NULL
+								  )
+								  ORDER BY l.account;
+
+						  EXEC SQL DECLARE u2 CURSOR FOR
+						          SELECT t.account, t.userid, decrypt_char(t.password, :enc_pwd), t.description
+						          FROM pwdsafe.tpwdlist t
+						          WHERE t.usr = :user AND t.account
+								  NOT IN (SELECT account FROM pwdsafe.pwdlist l WHERE l.usr = t.usr)
+								  ORDER BY t.account;
+
+						  EXEC SQL OPEN u1;
+						  EMB_SQL_CHECK("OPEN CURSOR u1");
+
+						  printf( "\n Preview? (y/N)" );
+
+						  tmp[0] = '\0';
+						  fflush(stdin);
+						  strcpy( tmp, getstr(5) );
+						  preview = tmp[0];
+						  prompt = 'n';
+
+						  if( preview != 'y' )
+						  {
+							  printf( "\n Prompt? (Y/n)" );
+							  tmp[0] = '\0';
+							  fflush(stdin);
+							  strcpy( tmp, getstr(5) );
+							  prompt = tmp[0];
+						  }
+
+						  if( preview != 'y' )
+						     preview = 'n';
+
+						  if( prompt != 'n' )
+						     prompt = 'y';
+
+						  do {
+							  account[0] = '\0';
+							  userid[0] = '\0';
+							  password[0] = '\0';
+							  description[0] = '\0';
+
+							  haccount[0] = '\0';
+							  huserid[0] = '\0';
+							  hpassword[0] = '\0';
+							  hdescription[0] = '\0';
+
+							  EXEC SQL FETCH u1 INTO :account, :userid, :password, :description, :haccount, :huserid, :hpassword, :hdescription;
+							  if (SQLCODE != 0) break;
+
+						      printf( "\n------------------------------------" );
+						      printf( "\nAccount    : %s", account );
+							  printf( "\nUserid     : %s", userid );
+							  printf( "\nPassword   : %s", password );
+							  printf( "\nDescription: %s", description );
+   						 	  printf( "\n  CHANGING TO" );
+
+						      printf( "\nAccount    : %s", haccount );
+							  printf( "\nUserid     : %s", huserid );
+							  printf( "\nPassword   : %s", hpassword );
+							  printf( "\nDescription: %s", hdescription );
+   						 	  printf( "\n------------------------------------" );
+
+   						 	  if( preview != 'y' )
+   						 	     sync = 1;
+
+   						 	  if( prompt == 'y' )
+   						 	  {
+								  printf( "\n Sync? (y/N) Main Menue (q)" );
+
+								  upd[0] = '\0';
+								  fflush(stdin);
+								  strcpy( upd, getstr(5) );
+
+								  if( upd[0] == 'q' )
+								     goto eloop_sync;
+
+								  if( upd[0] != 'y' )
+								     sync = 0;
+							  }
+
+							  if( sync )
+							  {
+								  EXEC SQL UPDATE pwdsafe.pwdlist SET (userid, password, description, ts) =
+								  (:huserid, encrypt(:hpassword, :enc_pwd), :hdescription, current timestamp)
+								  WHERE account = :account AND usr = :user;
+
+								  EMB_SQL_CHECK("UPDATE - SYNC");
+								  printf( "\nDone.\n" );
+							  }
+
+						  } while( 1 );
+
+						  eloop_sync:
+
+						  EXEC SQL CLOSE u1;
+						  EMB_SQL_CHECK("CLOSE CURSOR u1");
+
+						  if( upd[0] == 'q' )
+						     break;
+
+						  EXEC SQL OPEN u2;
+						  EMB_SQL_CHECK("OPEN CURSOR u2");
+
+						  do {
+							  account[0] = '\0';
+							  userid[0] = '\0';
+							  password[0] = '\0';
+							  description[0] = '\0';
+
+							  EXEC SQL FETCH u2 INTO :account, :userid, :password, :description INDICATOR :recind;
+							  if (SQLCODE != 0) break;
+
+						      printf( "\n------------------------------------" );
+						      printf( "\nAccount    : %s", account );
+							  printf( "\nUserid     : %s", userid );
+							  printf( "\nPassword   : %s", password );
+							  printf( "\nDescription: %s", description );
+   						 	  printf( "\n  ADD" );
+   						 	  printf( "\n------------------------------------" );
+
+   						 	  if( preview != 'y' )
+   						 	     sync = 1;
+
+   						 	  if( prompt == 'y' )
+   						 	  {
+								  printf( "\n Add? (y/N) Main Menue (q)" );
+
+								  upd[0] = '\0';
+								  fflush(stdin);
+								  strcpy( upd, getstr(5) );
+
+								  if( upd[0] == 'q' )
+								     goto eloop_sync2;
+
+								  if( upd[0] != 'y' )
+								     sync = 0;
+							  }
+
+							  if( sync )
+							  {
+								  EXEC SQL INSERT INTO pwdsafe.pwdlist (account,userid,password,description,usr,ts) values
+								  (:account, :userid, encrypt(:password, :enc_pwd), :description, :user, current timestamp);
+
+								  EMB_SQL_CHECK("INSERT - SYNC");
+								  printf( "\nDone.\n" );
+							  }
+
+						  } while( 1 );
+
+						  eloop_sync2:
+
+						  EXEC SQL COMMIT;
+
+						  EXEC SQL CLOSE u2;
+						  EMB_SQL_CHECK("CLOSE CURSOR u2");
 
 						  break;
 
