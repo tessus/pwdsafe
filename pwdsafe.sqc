@@ -83,6 +83,7 @@ int main(int argc, char *argv[]) {
    char filename[MAX_PATH_LEN];		// var for filename
    char prompt, preview;
    int sync = 0;
+   int rc = 0;
 
    // init connection vars
 
@@ -518,7 +519,6 @@ int main(int argc, char *argv[]) {
 							  }
 						      } while ( upd[0] != 'n' );
 							  i++;
-							  EXEC SQL COMMIT;
 
 						  } while ( 1 );
 
@@ -688,6 +688,12 @@ int main(int argc, char *argv[]) {
 						  else
                              fp = fopen( filename, "w" );
 
+                          if( fp == NULL )
+                          {
+							  printf( "\n\n Error: Cannot write to file %s\n", filename );
+							  break;
+						  }
+
                           EXEC SQL DECLARE c6 CURSOR FOR
 					              SELECT account, userid, decrypt_char(password, :enc_pwd), description, ts
 						              FROM pwdsafe.pwdlist
@@ -744,6 +750,12 @@ int main(int argc, char *argv[]) {
                              break; //fp = fopen( "pwdfile.txt", "w" );
 						  else
                              fp = fopen( filename, "w" );
+
+                          if( fp == NULL )
+                          {
+							  printf( "\n\n Error: Cannot write to file %s\n", filename );
+							  break;
+						  }
 
                           EXEC SQL DECLARE c7 CURSOR FOR
 					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
@@ -834,20 +846,15 @@ int main(int argc, char *argv[]) {
 						  if( strlen( filename ) == 0 )
 						     break;
 
-                          DataExport( filename, user );
+                          rc = DataExport( filename, user );
+
+                          if( rc != 0 )
+                             printf( "\n\n Error: export to file %s\n", filename );
 
 						  break;
 
 					  // Import and sync
 					  case 11:
-					      EXEC SQL CREATE TABLE "PWDSAFE"."TPWDLIST" LIKE pwdsafe.pwdlist;
-
-					      if( sqlca.sqlcode == -601 )
-					      {
-							  EXEC SQL DELETE FROM "PWDSAFE"."TPWDLIST";
-							  EXEC SQL COMMIT;
-						  }
-
 						  printf( "\nEnter [path]filename: " );
 						  filename[0] = '\0';
 
@@ -857,7 +864,22 @@ int main(int argc, char *argv[]) {
 						  if( strlen( filename ) == 0 )
 						     break;
 
-						  DataImport( filename );
+					      EXEC SQL CREATE TABLE "PWDSAFE"."TPWDLIST" LIKE "PWDSAFE"."PWDLIST";
+
+					      if( sqlca.sqlcode == -601 )
+					      {
+							  EXEC SQL DELETE FROM "PWDSAFE"."TPWDLIST";
+							  EXEC SQL COMMIT;
+						  }
+
+						  rc = DataImport( filename );
+
+						  if( rc != 0 )
+						  {
+							  printf( "\n\n Error: import from file %s\n", filename );
+							  break;
+						  }
+
 
 						  EXEC SQL DECLARE u1 CURSOR FOR
 						          SELECT l.account, l.userid, decrypt_char(l.password, :enc_pwd), l.description,
@@ -967,7 +989,7 @@ int main(int argc, char *argv[]) {
 						  EMB_SQL_CHECK("CLOSE CURSOR u1");
 
 						  if( upd[0] == 'q' )
-						     break;
+						     goto eloop_sync3;
 
 						  EXEC SQL OPEN u2;
 						  EMB_SQL_CHECK("OPEN CURSOR u2");
@@ -1020,10 +1042,12 @@ int main(int argc, char *argv[]) {
 
 						  eloop_sync2:
 
-						  EXEC SQL COMMIT;
-
 						  EXEC SQL CLOSE u2;
 						  EMB_SQL_CHECK("CLOSE CURSOR u2");
+
+						  eloop_sync3:
+
+						  EXEC SQL COMMIT;
 
 						  EXEC SQL DROP TABLE "PWDSAFE"."TPWDLIST";
 
@@ -1088,6 +1112,9 @@ int DataExport(char *dataFileName, char *user)
   /* free memory allocated */
   free(pAction);
 
+  if( (int)outputInfo.oRowsExported == 0 )
+     return -1;
+
  /* display import info */
   printf("\n   Export info.\n");
   printf("      rows exported : %ld\n", (int)outputInfo.oRowsExported);
@@ -1147,6 +1174,9 @@ int DataImport(char *dataFileName)
 
   /* free memory allocated */
   free(pAction);
+
+  if( ((int)outputInfo.oRowsRead != (int)outputInfo.oRowsInserted) || (int)outputInfo.oRowsRead == 0 )
+     return -1;
 
  /* display import info */
   printf("\n   Import info.\n");
