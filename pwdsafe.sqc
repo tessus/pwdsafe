@@ -20,7 +20,7 @@
 #include "utilemb.h"
 #include "php_md5.h"
 
-#define	RELEASE	"1.3"
+#define	RELEASE	"1.4"
 #define REVISION "$Revision$"
 
 #define MAX_ACC_LEN		32
@@ -890,6 +890,11 @@ int main(int argc, char *argv[]) {
 								  (
 								  l.ts < t.ts OR
 								  l.ts IS NULL
+								  ) AND
+								  (
+								  l.userid != t.userid OR
+								  decrypt_char(l.password, :enc_pwd) != decrypt_char(t.password, :enc_pwd) OR
+								  l.description != t.description
 								  )
 								  ORDER BY l.account;
 
@@ -978,6 +983,7 @@ int main(int argc, char *argv[]) {
 								  WHERE account = :account AND usr = :user;
 
 								  EMB_SQL_CHECK("UPDATE - SYNC");
+								  //printf( "\nDEBUG: synced.\n" );
 								  printf( "\nDone.\n" );
 							  }
 
@@ -1035,6 +1041,7 @@ int main(int argc, char *argv[]) {
 								  (:account, :userid, encrypt(:password, :enc_pwd), :description, :user, current timestamp);
 
 								  EMB_SQL_CHECK("INSERT - SYNC");
+								  //printf( "\nDEBUG: added.\n" );
 								  printf( "\nDone.\n" );
 							  }
 
