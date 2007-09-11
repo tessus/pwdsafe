@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sqlca.h>
-#include <conio.h>
 #include <ctype.h>
+#include <malloc.h>
 #include "utilemb.h"
 #include "php_md5.h"
 
@@ -16,6 +16,7 @@ EXEC SQL INCLUDE SQLCA;
 
 
 int execi(char s[1000]);
+char* getstr( int len );
 
 EXEC SQL BEGIN DECLARE SECTION;
         struct VARCHAR {
@@ -41,6 +42,7 @@ int main(int argc, char *argv[]) {
            char uid[9];             // connection vars
       	   char passwd[19];
       	   char db[19];
+      	   char tbs[129];			// host var for tablespaces
    EXEC SQL END DECLARE SECTION;
 
    unsigned int numsel = 999;       // menue var
@@ -102,16 +104,29 @@ int main(int argc, char *argv[]) {
    EXEC SQL SELECT count(tabname) INTO :there
        FROM syscat.tables
        WHERE tabschema = 'PWDSAFE' AND tabname = 'PWDLIST' OR tabname = 'PWDLOGIN';
-
+       
    if( there < 2 )
    {
        printf( "\nTables not in database\n\n" );
-   	   printf( "Tablespace (leave blank for default tablespace: " );
+       printf( "Available tablespaces:\n\n" );
+       
+       EXEC SQL DECLARE c1 CURSOR FOR select trim(tbspace) from syscat.tablespaces;
+       EXEC SQL OPEN c1;
+       do {
+           EXEC SQL FETCH c1 INTO :tbs;
+           
+           if (SQLCODE != 0) break;
+           
+           printf( "%s\n", tbs );
+       } while ( 1 );
+       EXEC SQL CLOSE c1;
+       
+   	   printf( "\nTablespace (leave blank for default tablespace): " );
    	   tbspace[0] = '\0';
 	   fflush(stdin);
-	   gets( tbspace );
+	   strcpy( tbspace, getstr(256) );
 
-   	   printf( "\n\nCreating tables..." );
+   	   printf( "\nCreating tables..." );
 
    	   // create the tables
 
@@ -182,8 +197,14 @@ int main(int argc, char *argv[]) {
 		       (\"USR\")"
 
        );
-
+       
+       printf( "\n\n" );
    }
+   else
+   {
+        printf( "\nTables already in database\n\n" );
+   }
+
 }
 
 
@@ -196,12 +217,14 @@ int execi (char s[1000]) {
 
    EXEC SQL
       EXECUTE IMMEDIATE :sqlstmt;
+      
+      //printf( "sqlcode: %d\n", sqlca.sqlcode);
 
    //EMB_SQL_CHECK("SQL Check");
 
    if( sqlca.sqlcode == -204 )
    {
-      printf( "\n\nThe entered tablespace does not exist.\n" );
+      printf( "\n\nThe entered tablespace does not exist.\n\n" );
       EXEC SQL ROLLBACK;
       EXEC SQL CONNECT RESET;
       EMB_SQL_CHECK("CONNECT RESET");
@@ -230,3 +253,24 @@ int execi (char s[1000]) {
 
    return 0;
 }
+
+char* getstr( int len )
+{
+	char *result;
+
+	result = (char*)malloc(len*sizeof(char));
+
+	fgets( result, len, stdin );
+	result[strlen(result)-1] = '\0';
+
+	return result;
+}
+
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim600: noet sw=4 ts=4 fdm=marker
+ * vim<600: noet sw=4 ts=4
+ */
