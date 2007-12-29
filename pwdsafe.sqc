@@ -20,7 +20,7 @@
 #include "utilemb.h"
 #include "php_md5.h"
 
-#define	RELEASE	"1.4"
+#define	RELEASE	"1.5"
 #define REVISION "$Revision$"
 
 #define MAX_ACC_LEN		32
@@ -905,6 +905,14 @@ int main(int argc, char *argv[]) {
 								  NOT IN (SELECT account FROM pwdsafe.pwdlist l WHERE l.usr = t.usr)
 								  ORDER BY t.account;
 
+						  EXEC SQL DECLARE u3 CURSOR FOR
+						          SELECT t.account, t.userid, decrypt_char(t.password, :enc_pwd), t.description
+						          FROM pwdsafe.pwdlist t
+						          WHERE t.usr = :user AND t.account
+								  NOT IN (SELECT account FROM pwdsafe.tpwdlist l WHERE l.usr = t.usr)
+								  ORDER BY t.account
+								  FOR UPDATE;
+
 						  EXEC SQL OPEN u1;
 						  EMB_SQL_CHECK("OPEN CURSOR u1");
 
@@ -995,7 +1003,7 @@ int main(int argc, char *argv[]) {
 						  EMB_SQL_CHECK("CLOSE CURSOR u1");
 
 						  if( upd[0] == 'q' )
-						     goto eloop_sync3;
+						     goto eloop_sync4;
 
 						  EXEC SQL OPEN u2;
 						  EMB_SQL_CHECK("OPEN CURSOR u2");
@@ -1052,7 +1060,64 @@ int main(int argc, char *argv[]) {
 						  EXEC SQL CLOSE u2;
 						  EMB_SQL_CHECK("CLOSE CURSOR u2");
 
+						  if( upd[0] == 'q' )
+						     goto eloop_sync4;
+
+						  EXEC SQL OPEN u3;
+						  EMB_SQL_CHECK("OPEN CURSOR u3");
+
+						  do {
+							  account[0] = '\0';
+							  userid[0] = '\0';
+							  password[0] = '\0';
+							  description[0] = '\0';
+
+							  EXEC SQL FETCH u3 INTO :account, :userid, :password, :description INDICATOR :recind;
+							  if (SQLCODE != 0) break;
+
+						      printf( "\n------------------------------------" );
+						      printf( "\nAccount    : %s", account );
+							  printf( "\nUserid     : %s", userid );
+							  printf( "\nPassword   : %s", password );
+							  printf( "\nDescription: %s", description );
+   						 	  printf( "\n  DELETE" );
+   						 	  printf( "\n------------------------------------" );
+
+   						 	  if( preview != 'y' )
+   						 	     sync = 1;
+
+   						 	  if( prompt == 'y' )
+   						 	  {
+								  printf( "\n Delete? (y/N) Main Menue (q)" );
+
+								  upd[0] = '\0';
+								  fflush(stdin);
+								  strcpy( upd, getstr(5) );
+
+								  if( upd[0] == 'q' )
+								     goto eloop_sync3;
+
+								  if( upd[0] != 'y' )
+								     sync = 0;
+							  }
+
+							  if( sync )
+							  {
+								  EXEC SQL DELETE FROM pwdsafe.pwdlist WHERE CURRENT OF u3;
+
+								  EMB_SQL_CHECK("DELETE - SYNC");
+								  //printf( "\nDEBUG: deleted.\n" );
+								  printf( "\nDone.\n" );
+							  }
+
+						  } while( 1 );
+
 						  eloop_sync3:
+
+						  EXEC SQL CLOSE u3;
+						  EMB_SQL_CHECK("CLOSE CURSOR u3");
+
+						  eloop_sync4:
 
 						  EXEC SQL COMMIT;
 
