@@ -20,7 +20,7 @@
 #include "utilemb.h"
 #include "php_md5.h"
 
-#define	RELEASE	"1.5"
+#define	RELEASE	"1.6"
 #define REVISION "$Revision$"
 
 #define MAX_ACC_LEN		32
@@ -199,9 +199,10 @@ int main(int argc, char *argv[]) {
          printf(" 9 - Change login password\n" );
          printf("10 - Export for sync\n" );
          printf("11 - Import and sync\n" );
+         printf("12 - Import and delete\n" );
          if( admin > 0 )
          {
-            printf("12 - Register new user\n" );
+            printf("13 - Register new user\n" );
          }
          printf("\n   Enter x to exit.\n");
          printf("************************************\n");
@@ -219,7 +220,7 @@ int main(int argc, char *argv[]) {
          if( numselh[0] == 'x' )
             numsel = 0;
 
-         maxsel = 11;			// Max menue sections
+         maxsel = 12;			// Max menue sections
          if( admin > 0 )
          {
 			 maxsel++;
@@ -639,7 +640,7 @@ int main(int argc, char *argv[]) {
 				          break;
 
 				      // Register new user
-				      case 12:
+				      case 13:
 					  	  reguser[0] = '\0';
 					  	  regpwd[0] = '\0';
 
@@ -853,8 +854,12 @@ int main(int argc, char *argv[]) {
 
 						  break;
 
-					  // Import and sync
+					  // 11 - Import and sync
+					  // 12 - Import and delete accounts that are not in imported table
 					  case 11:
+					  case 12:
+					      //printf( "%d\n", numsel );
+					      //break;
 						  printf( "\nEnter [path]filename: " );
 						  filename[0] = '\0';
 
@@ -913,9 +918,6 @@ int main(int argc, char *argv[]) {
 								  ORDER BY t.account
 								  FOR UPDATE;
 
-						  EXEC SQL OPEN u1;
-						  EMB_SQL_CHECK("OPEN CURSOR u1");
-
 						  printf( "\n Preview? (y/N)" );
 
 						  tmp[0] = '\0';
@@ -938,6 +940,11 @@ int main(int argc, char *argv[]) {
 
 						  if( prompt != 'n' )
 						     prompt = 'y';
+
+						  if( numsel == 11 )
+						  {
+						  EXEC SQL OPEN u1;
+						  EMB_SQL_CHECK("OPEN CURSOR u1");
 
 						  do {
 							  account[0] = '\0';
@@ -1062,7 +1069,10 @@ int main(int argc, char *argv[]) {
 
 						  if( upd[0] == 'q' )
 						     goto eloop_sync4;
+					      }
 
+					      if( numsel == 12 )
+					      {
 						  EXEC SQL OPEN u3;
 						  EMB_SQL_CHECK("OPEN CURSOR u3");
 
@@ -1116,6 +1126,7 @@ int main(int argc, char *argv[]) {
 
 						  EXEC SQL CLOSE u3;
 						  EMB_SQL_CHECK("CLOSE CURSOR u3");
+					      }
 
 						  eloop_sync4:
 
