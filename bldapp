@@ -61,11 +61,6 @@ fi
 
 EXTRA_C_FLAGS="$FLAG1 $FLAG2"
 
-echo $LIB
-echo $EXTRA_C_FLAGS
-
-exit
-
 # If an embedded SQL program, precompile and bind it.
 # Note: some .sqc files contain no SQL but link in 
 # utilemb.sqc, so if you get this warning, ignore it:
