@@ -2,7 +2,7 @@
  * $Id$
  */
 
-#ifdef LINUX
+#ifdef LINUX || DARWIN
 #include <termios.h>
 #endif
 #include <stdio.h>
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
       	   char db[19];
    EXEC SQL END DECLARE SECTION;
 
-#ifdef LINUX
+#ifdef LINUX || DARWIN
    struct termios initialrsettings, newrsettings;
 #endif
 
@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
    enc_pwd[i] = '\0';
 #endif
 
-#ifdef LINUX
+#ifdef LINUX || DARWIN
    enc_pwd[0] = '\0';
    tcgetattr( fileno(stdin), &initialrsettings );
    newrsettings = initialrsettings;
@@ -208,7 +208,7 @@ int main(int argc, char *argv[]) {
    enc_pwd2[i] = '\0';
 #endif
 
-#ifdef LINUX
+#ifdef LINUX || DARWIN
    enc_pwd2[0] = '\0';
    tcgetattr( fileno(stdin), &initialrsettings );
    newrsettings = initialrsettings;

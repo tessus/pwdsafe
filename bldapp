@@ -2,20 +2,8 @@
 #
 # $Id$
 #
-#############################################################################
-# Licensed Materials - Property of IBM
-#
-# Governed under the terms of the International
-# License Agreement for Non-Warranted Sample Code.
-#
-# (C) COPYRIGHT International Business Machines Corp. 1995, 2002
-# All Rights Reserved.
-#
-# US Government Users Restricted Rights - Use, duplication or
-# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
-############################################################################# 
 # SCRIPT: bldapp
-# Builds C applications for Linux
+# Builds C applications for Linux, AIX, MacOSX
 # Usage: bldapp <prog_name> [ <db_name> [ <userid> <password> ]]
 
 # Select a compiler to use
@@ -26,36 +14,37 @@ CC=gcc
 # The default is the standard instance path.
 DB2PATH=/home/db2inst1/sqllib
 
-# Default compiler/linker settings
-LIB="lib"
-EXTRA_C_FLAGS="-DLINUX"
+PLAT=`uname -s`
 
-# Determine our bitwidth (32 or 64) and hardware platform
-BITWIDTH=`LANG=C db2level | awk '/bits/{print $5}'`
-HARDWAREPLAT=`uname -m`
-
-if [ $BITWIDTH = "\"32\"" ]
+if [ "$PLAT" = "Linux" ]
 then
-  LIB="lib32"
+  # Default instance path
+  DB2PATH=/home/db2inst1/sqllib
+  # Compiler flags
+  FLAG1="-DLINUX"  
+fi
+if [ "$PLAT" = "Darwin" ]
+then
+  # Default instance path
+  DB2PATH=/Users/db2inst1/sqllib
+  # Compiler flags
+  FLAG1="-DDARWIN"
 fi
 
+# Default compiler/linker settings
+LIB="lib"
+
+# Determine our bitwidth (32 or 64)
+BITWIDTH=`LANG=C db2level | awk '/bits/{print $5}' | cut -b 2-3`
+
+LIB=lib${BITWIDTH}
+
 # Set up compiler switches according to the current environment
-if [ "$HARDWAREPLAT" = "x86_64" ] || [ "$HARDWAREPLAT" = "ppc64" ]
+if [ "$CC" = "xlc_r" ]
 then
-  if [ $BITWIDTH = "\"64\"" ]
-  then
-    if [ "$CC" = "xlc_r" ]
-    then
-      EXTRA_C_FLAGS="-q64"
-    else
-      EXTRA_C_FLAGS="-m64"
-    fi
-  else
-    if [ "$HARDWAREPLAT" != "ppc64" ]
-    then
-      EXTRA_C_FLAGS="-m32"
-    fi
-  fi
+  FLAG2="-q${BITWIDTH}"
+else
+  FLAG2="-m${BITWIDTH}"
 fi
 
 # The runtime path is recommended for all applications.
@@ -69,6 +58,13 @@ then
 else
   EXTRA_LFLAG=""
 fi
+
+EXTRA_C_FLAGS="$FLAG1 $FLAG2"
+
+echo $LIB
+echo $EXTRA_C_FLAGS
+
+exit
 
 # If an embedded SQL program, precompile and bind it.
 # Note: some .sqc files contain no SQL but link in 
