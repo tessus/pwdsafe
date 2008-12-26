@@ -2,7 +2,7 @@
  * $Id$
  */
 
-#ifdef LINUX
+#if defined (LINUX) || defined (DARWIN)
 #include <termios.h>
 #endif
 #include <stdio.h>
@@ -12,7 +12,6 @@
 #include <sqlenv.h>
 #include <sqlutil.h>
 #include <db2ApiDf.h>
-#include <malloc.h>
 #ifdef WIN32
 #include <conio.h>
 #endif
@@ -20,7 +19,7 @@
 #include "utilemb.h"
 #include "php_md5.h"
 
-#define	RELEASE	"1.6"
+#define	RELEASE	"1.7"
 #define REVISION "$Revision$"
 
 #define MAX_ACC_LEN		32
@@ -69,7 +68,7 @@ int main(int argc, char *argv[]) {
 
    EXEC SQL END DECLARE SECTION;
 
-#ifdef LINUX
+#if defined (LINUX) || defined (DARWIN)
    struct termios initialrsettings, newrsettings;
 #endif
 
@@ -143,7 +142,7 @@ int main(int argc, char *argv[]) {
    enc_pwd[i] = '\0';
 #endif
 
-#ifdef LINUX
+#if defined (LINUX) || defined (DARWIN)
    enc_pwd[0] = '\0';
    tcgetattr( fileno(stdin), &initialrsettings );
    newrsettings = initialrsettings;

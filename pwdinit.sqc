@@ -7,7 +7,6 @@
 #include <string.h>
 #include <sqlca.h>
 #include <ctype.h>
-#include <malloc.h>
 #include "utilemb.h"
 #include "php_md5.h"
 
