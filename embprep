@@ -2,22 +2,12 @@
 #
 # $Id$
 #
-#############################################################################
-# Licensed Materials - Property of IBM
-# 
-# Governed under the terms of the International
-# License Agreement for Non-Warranted Sample Code.
-#
-# (C) COPYRIGHT International Business Machines Corp. 1995 - 2003
-# All Rights Reserved.
-#
-# US Government Users Restricted Rights - Use, duplication or
-# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
-#############################################################################
 # SCRIPT: embprep
-# To prep and bind C/C++ and Micro Focus COBOL embedded SQL programs
+# To prep and bind C embedded SQL programs
 #
 # Usage: embprep <prog_name> [ <db_name> [ <userid> <password> ]]
+
+SUFFIX=`uname -s | cut -b -1`
 
 # Connect to a database.
 if (test $# -lt 2)
@@ -33,26 +23,16 @@ fi
 # Precompile the program.
 if [ -f $1".sqc" ]
 then
-  db2 prep $1.sqc bindfile using ${1}L.bnd package using ${1}L sqlerror continue validate run
+  db2 prep $1.sqc bindfile using ${1}${SUFFIX}.bnd package using ${1}${SUFFIX} sqlerror continue validate run
   if [ -f utilemb.sqc ]
   then
-    db2 prep utilemb.sqc bindfile using utilembL.bnd package using utilembL
+    db2 prep utilemb.sqc bindfile using utilemb${SUFFIX}.bnd package using utilemb${SUFFIX}
   fi
-elif [ -f $1".sqC" ]
-then
-  db2 prep $1.sqC bindfile
-  if [ -f utilemb.sqC ]
-  then
-   db2 prep utilemb.sqC
-  fi
-elif [ -f $1".sqb" ]
-then
-  db2 prep $1.sqb bindfile target mfcob CALL_RESOLUTION DEFERRED
 fi
 
 # Bind the program to the database.
-db2 bind ${1}L.bnd blocking all validate run
-db2 bind utilembL.bnd
+db2 bind ${1}${SUFFIX}.bnd blocking all validate run
+db2 bind utilemb${SUFFIX}.bnd
 
 # Disconnect from the database.
 db2 connect reset
