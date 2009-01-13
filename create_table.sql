@@ -7,8 +7,8 @@
 ------------------------------------------------
  
  CREATE TABLE "PWDSAFE  "."PWDLOGIN"  (
-		  "USR" VARCHAR(32) NOT NULL , 
-		  "PWD" VARCHAR(32) NOT NULL , 
+		  "USR" VARCHAR(64) NOT NULL , 
+		  "PWD" VARCHAR(80) NOT NULL , 
 		  "ADMIN" INTEGER NOT NULL WITH DEFAULT 0 )   
 		 IN "DATA4K" INDEX IN "IDX4K" ; 
 COMMENT ON TABLE "PWDSAFE  "."PWDLOGIN" IS 'Login Table for Password Application';
@@ -31,11 +31,11 @@ CREATE ALIAS "PWDSAFE "."PWDLOGIN" FOR "PWDSAFE  "."PWDLOGIN";
 ------------------------------------------------
  
  CREATE TABLE "PWDSAFE  "."PWDLIST"  (
-		  "ACCOUNT" VARCHAR(32) NOT NULL , 
-		  "USERID" VARCHAR(32) NOT NULL , 
-		  "PASSWORD" VARCHAR(32) FOR BIT DATA , 
-		  "DESCRIPTION" VARCHAR(64) , 
-		  "USR" VARCHAR(32) NOT NULL , 
+		  "ACCOUNT" VARCHAR(64) NOT NULL , 
+		  "USERID" VARCHAR(64) NOT NULL , 
+		  "PASSWORD" VARCHAR(80) FOR BIT DATA , 
+		  "DESCRIPTION" VARCHAR(2048) , 
+		  "USR" VARCHAR(64) NOT NULL , 
 		  "TS" TIMESTAMP )   
 		 IN "DATA4K" INDEX IN "IDX4K" ; 
 COMMENT ON TABLE "PWDSAFE  "."PWDLIST" IS 'Pwd Table for Password Application';
