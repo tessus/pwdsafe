@@ -14,9 +14,8 @@
 #endif
 #include <ctype.h>
 #include "utilemb.h"
-#include "php_md5.h"
 
-#define	RELEASE	"1.4"
+#define	RELEASE	"1.5"
 #define REVISION "$Revision$"
 
 EXEC SQL INCLUDE SQLCA;
@@ -25,16 +24,15 @@ EXEC SQL INCLUDE SQLCA;
 int main(int argc, char *argv[]) {
 
    EXEC SQL BEGIN DECLARE SECTION;
-           char user[32];           // var for actual user
-           char pwd[32];            // host var for hashed pwd in pwdlogin
-           char enc_pwd[32];        // pwd entered
-           char enc_pwd2[32];       // pwd entered again
-           char enc_pwd_final[33];  // md5 hashed pwd
+           char user[65];           // var for actual user
+           char pwd[65];            // host var for hashed pwd in pwdlogin
+           char enc_pwd[65];        // pwd entered
+           char enc_pwd2[65];       // pwd entered again
 
            short admin;				// host var, if user is admin -> allow register new users
            short there;				// host var to check if tables are there
-		   char huser[32];
-		   char username[32];
+		   char huser[65];
+		   char username[65];
 
            char uid[9];             // connection vars
       	   char passwd[19];
@@ -49,7 +47,6 @@ int main(int argc, char *argv[]) {
    unsigned int maxsel = 0;
    struct sqlca sqlca;              // sqlca structure
    int ch, i = 0;                   // vars for enc_pwd input
-   char *temp_pwd;                  // temp var for php_md5 func
    char tbspace[256];
    char hst[1000];
    char atext[4];
@@ -76,7 +73,6 @@ int main(int argc, char *argv[]) {
    user[0] = '\0';
    enc_pwd[0] = '\0';
    enc_pwd2[0] = '\0';
-   enc_pwd_final[0] = '\0';
 
    switch( argc )
    {
@@ -131,9 +127,7 @@ int main(int argc, char *argv[]) {
 			    user[0] = '\0';
 				enc_pwd[0] = '\0';
 				enc_pwd2[0] = '\0';
-                enc_pwd_final[0] = '\0';
-
-
+                  
 			    printf( "\nUser: "); fscanf( stdin, "%s", user );
 	            i = 0;
 	            printf( "\nPlease enter the encryption password: " );
@@ -224,14 +218,8 @@ int main(int argc, char *argv[]) {
 				   break;
 			    }
 
-			    temp_pwd = php_md5( enc_pwd );
-				enc_pwd_final[0] = '\0';
-				strcpy( enc_pwd_final, temp_pwd );
-				free( temp_pwd );
-
-
 				EXEC SQL INSERT INTO pwdsafe.pwdlogin (usr,pwd) values
-				     (:user, :enc_pwd_final);
+				     (:user, encrypt(:enc_pwd,:enc_pwd));
 
 				// -803 duplicate rows - constraint violation
 

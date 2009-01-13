@@ -8,7 +8,6 @@
 #include <sqlca.h>
 #include <ctype.h>
 #include "utilemb.h"
-#include "php_md5.h"
 
 
 EXEC SQL INCLUDE SQLCA;
@@ -27,16 +26,7 @@ EXEC SQL END DECLARE SECTION;
 int main(int argc, char *argv[]) {
 
    EXEC SQL BEGIN DECLARE SECTION;
-           char user[32];           // var for actual user
-           char pwd[32];            // host var for hashed pwd in pwdlogin
-           char enc_pwd[32];        // pwd entered
-           char enc_pwd2[32];       // pwd entered again
-           char enc_pwd_final[33];  // md5 hashed pwd
-
-           short admin;				// host var, if user is admin -> allow register new users
            short there;				// host var to check if tables are there
-		   char huser[32];
-		   char username[32];
 
            char uid[9];             // connection vars
       	   char passwd[19];
@@ -72,11 +62,6 @@ int main(int argc, char *argv[]) {
    uid[0] = '\0';
    passwd[0] = '\0';
 
-   user[0] = '\0';
-   enc_pwd[0] = '\0';
-   enc_pwd2[0] = '\0';
-   enc_pwd_final[0] = '\0';
-
    switch( argc )
    {
        case 2:
@@ -96,7 +81,6 @@ int main(int argc, char *argv[]) {
           return 1;
           break;
    }
-
 
    // check if tables are there
 
@@ -137,11 +121,11 @@ int main(int argc, char *argv[]) {
    	   execi(
 
        "CREATE TABLE \"PWDSAFE\".\"PWDLIST\"  (					\
-		  \"ACCOUNT\" VARCHAR(32) NOT NULL , 		\
-		  \"USERID\" VARCHAR(32) NOT NULL , 		\
-		  \"PASSWORD\" VARCHAR(32) FOR BIT DATA , 	\
-		  \"DESCRIPTION\" VARCHAR(64) ,				\
-		  \"USR\" VARCHAR(32) NOT NULL,				\
+		  \"ACCOUNT\" VARCHAR(64) NOT NULL , 		\
+		  \"USERID\" VARCHAR(64) NOT NULL , 		\
+		  \"PASSWORD\" VARCHAR(80) FOR BIT DATA , 	\
+		  \"DESCRIPTION\" VARCHAR(2048) ,				\
+		  \"USR\" VARCHAR(64) NOT NULL,				\
 		  \"TS\" TIMESTAMP )"
 
 	   );
@@ -149,8 +133,8 @@ int main(int argc, char *argv[]) {
        execi(
 
 	   "CREATE TABLE \"PWDSAFE\".\"PWDLOGIN\"  (					\
- 		  \"USR\" VARCHAR(32) NOT NULL , 				\
- 		  \"PWD\" VARCHAR(32) NOT NULL ,				\
+ 		  \"USR\" VARCHAR(64) NOT NULL , 				\
+ 		  \"PWD\" VARCHAR(80) FOR BIT DATA NOT NULL ,				\
  		  \"ADMIN\" INTEGER NOT NULL WITH DEFAULT 0 )"
  	   );
 
@@ -159,11 +143,11 @@ int main(int argc, char *argv[]) {
 	   hst[0] = '\0';
 
 	   sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLIST\"  (					\
-		  \"ACCOUNT\" VARCHAR(32) NOT NULL , 		\
-		  \"USERID\" VARCHAR(32) NOT NULL , 		\
-		  \"PASSWORD\" VARCHAR(32) FOR BIT DATA , 	\
-		  \"DESCRIPTION\" VARCHAR(64) ,				\
-		  \"USR\" VARCHAR(32) NOT NULL,				\
+		  \"ACCOUNT\" VARCHAR(64) NOT NULL , 		\
+		  \"USERID\" VARCHAR(64) NOT NULL , 		\
+		  \"PASSWORD\" VARCHAR(80) FOR BIT DATA , 	\
+		  \"DESCRIPTION\" VARCHAR(2048) ,			\
+		  \"USR\" VARCHAR(64) NOT NULL,				\
 		  \"TS\" TIMESTAMP ) IN \"%s\"", tbspace );
 
        execi( hst );
@@ -171,8 +155,8 @@ int main(int argc, char *argv[]) {
        hst[0] = '\0';
 
        sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLOGIN\"  (					\
- 		  \"USR\" VARCHAR(32) NOT NULL , 				\
- 		  \"PWD\" VARCHAR(32) NOT NULL ,				\
+ 		  \"USR\" VARCHAR(64) NOT NULL , 				\
+ 		  \"PWD\" VARCHAR(80) FOR BIT DATA NOT NULL ,				\
  		  \"ADMIN\" INTEGER NOT NULL WITH DEFAULT 0 ) IN \"%s\"" , tbspace );
 
        execi( hst );
