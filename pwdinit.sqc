@@ -37,11 +37,9 @@ int main(int argc, char *argv[]) {
    unsigned int numsel = 999;       // menue var
    unsigned int maxsel = 0;
    struct sqlca sqlca;              // sqlca structure
-   int ch, i = 0;                   // vars for enc_pwd input
-   char *temp_pwd;                  // temp var for php_md5 func
    char tbspace[256];
+   char itbspace[256];
    char hst[1000];
-   char atext[4];
 
 
    switch( argc )
@@ -87,87 +85,70 @@ int main(int argc, char *argv[]) {
    EXEC SQL SELECT count(tabname) INTO :there
        FROM syscat.tables
        WHERE tabschema = 'PWDSAFE' AND tabname = 'PWDLIST' OR tabname = 'PWDLOGIN';
-       
+
    if( there < 2 )
    {
        printf( "\nTables not in database\n\n" );
        printf( "Available tablespaces:\n\n" );
-       
+
        EXEC SQL DECLARE c1 CURSOR FOR select trim(tbspace) from syscat.tablespaces;
        EXEC SQL OPEN c1;
        do {
            EXEC SQL FETCH c1 INTO :tbs;
-           
+
            if (SQLCODE != 0) break;
-           
+
            printf( "%s\n", tbs );
        } while ( 1 );
        EXEC SQL CLOSE c1;
-       
-   	   printf( "\nTablespace (leave blank for default tablespace): " );
+
+   	   printf( "\nData Tablespace: " );
    	   tbspace[0] = '\0';
 	   fflush(stdin);
 	   strcpy( tbspace, getstr(256) );
 
-   	   printf( "\nCreating tables..." );
+	   printf( "\nIndex Tablespace (leave blank for same as data tablespace): " );
+	   itbspace[0] = '\0';
+	   fflush(stdin);
+	   strcpy( itbspace, getstr(256) );
+
+	   if( strlen( itbspace ) == 0 )
+	      strcpy( itbspace, tbspace );
+
+   	   printf( "\nCreating tables...", tbspace );
 
    	   // create the tables
 
-   	   if( strlen( tbspace ) == 0 )
-   	   {
-
-   	   //default tbs
-
-   	   execi(
-
-       "CREATE TABLE \"PWDSAFE\".\"PWDLIST\"  (					\
-		  \"ACCOUNT\" VARCHAR(64) NOT NULL , 		\
-		  \"USERID\" VARCHAR(64) NOT NULL , 		\
-		  \"PASSWORD\" VARCHAR(80) FOR BIT DATA , 	\
-		  \"DESCRIPTION\" VARCHAR(2048) ,				\
-		  \"USR\" VARCHAR(64) NOT NULL,				\
-		  \"TS\" TIMESTAMP )"
-
-	   );
-
-       execi(
-
-	   "CREATE TABLE \"PWDSAFE\".\"PWDLOGIN\"  (					\
- 		  \"USR\" VARCHAR(64) NOT NULL , 				\
- 		  \"PWD\" VARCHAR(80) FOR BIT DATA NOT NULL ,				\
- 		  \"ADMIN\" INTEGER NOT NULL WITH DEFAULT 0 )"
- 	   );
-
-       } else {
-
 	   hst[0] = '\0';
 
-	   sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLIST\"  (					\
+	   sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLIST\"  (	\
 		  \"ACCOUNT\" VARCHAR(64) NOT NULL , 		\
 		  \"USERID\" VARCHAR(64) NOT NULL , 		\
 		  \"PASSWORD\" VARCHAR(80) FOR BIT DATA , 	\
 		  \"DESCRIPTION\" VARCHAR(2048) ,			\
 		  \"USR\" VARCHAR(64) NOT NULL,				\
-		  \"TS\" TIMESTAMP ) IN \"%s\"", tbspace );
+		  \"TS\" TIMESTAMP ) 						\
+		  IN \"%s\" INDEX IN \"%s\"", tbspace, itbspace );
 
        execi( hst );
 
        hst[0] = '\0';
 
-       sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLOGIN\"  (					\
- 		  \"USR\" VARCHAR(64) NOT NULL , 				\
- 		  \"PWD\" VARCHAR(80) FOR BIT DATA NOT NULL ,				\
- 		  \"ADMIN\" INTEGER NOT NULL WITH DEFAULT 0 ) IN \"%s\"" , tbspace );
+       sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLOGIN\"  (	\
+ 		  \"USR\" VARCHAR(64) NOT NULL ,				\
+ 		  \"PWD\" VARCHAR(80) FOR BIT DATA NOT NULL ,	\
+ 		  \"ADMIN\" INTEGER NOT NULL WITH DEFAULT 0 )	\
+ 		  IN \"%s\" INDEX IN \"%s\"" , tbspace, itbspace );
 
        execi( hst );
 
-       }
+       printf( "\nCreating indexes...", tbspace );
 
        // primary keys
 
        execi(
 
-       "ALTER TABLE \"PWDSAFE\".\"PWDLIST\" 						\
+       "ALTER TABLE \"PWDSAFE\".\"PWDLIST\"				\
 	       ADD CONSTRAINT \"PK_PWDLIST\" PRIMARY KEY	\
 	           (\"ACCOUNT\", \"USR\")"
 
@@ -175,12 +156,23 @@ int main(int argc, char *argv[]) {
 
        execi(
 
-       "ALTER TABLE \"PWDSAFE\".\"PWDLOGIN\" 						\
+       "ALTER TABLE \"PWDSAFE\".\"PWDLOGIN\"			\
 	       ADD CONSTRAINT \"PK_PWDLOGIN\" PRIMARY KEY	\
 		       (\"USR\")"
 
        );
-       
+
+       // creating foreign key
+
+       execi(
+
+	   "ALTER TABLE PWDSAFE.PWDLIST ADD CONSTRAINT FK_USR 		\
+	   FOREIGN KEY (USR) REFERENCES PWDSAFE.PWDLOGIN (USR)  	\
+	   ON DELETE NO ACTION ON UPDATE NO ACTION 					\
+	   ENFORCED  ENABLE QUERY OPTIMIZATION"
+
+	   );
+
        printf( "\n\n" );
    }
    else
@@ -200,8 +192,8 @@ int execi (char s[1000]) {
 
    EXEC SQL
       EXECUTE IMMEDIATE :sqlstmt;
-      
-      //printf( "sqlcode: %d\n", sqlca.sqlcode);
+
+   //printf( "sqlcode: %d\n", sqlca.sqlcode);
 
    //EMB_SQL_CHECK("SQL Check");
 
