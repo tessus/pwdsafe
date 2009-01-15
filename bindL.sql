@@ -12,3 +12,4 @@ BIND @pwdsafeL.lst BLOCKING ALL SQLERROR CONTINUE VALIDATE RUN;
 --             SELECT, INSERT, UPDATE, DELETE on PWDSAFE.PWDLIST
 --             CREATE TABLE and BIND authority
 --             CREATE IN schema PWDSAFE
+
