@@ -214,12 +214,18 @@ int main(int argc, char *argv[]) {
 
          if( numselh[0] == 'x' )
             numsel = 0;
-
+         
          maxsel = 12;			// Max menue sections
          if( admin > 0 )
          {
 			 maxsel++;
 		 }
+		 if( numselh[0] == 'D' )
+         {
+         	maxsel = 99;
+            numsel = 88;
+         }
+		 
          if (numsel < 0 || numsel > maxsel)
             printf("\nInvalid selection. Please try again.\n");
          else
@@ -1117,6 +1123,13 @@ int main(int argc, char *argv[]) {
 						  EXEC SQL DROP TABLE "PWDSAFE"."TPWDLIST";
 
 						  break;
+						  
+					  // get Debug info
+					  case 88:
+					      printf("\nDatabase     : %s", db );
+					      printf("\nDatabase User: %s\n", uid );
+					      printf("\nPwdSafe User : %s\n", user );
+					      break;					      
 
 				      default:
 				          printf("\nError in Reset... should not happen... exiting...\n");
