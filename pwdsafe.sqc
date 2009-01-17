@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
            short int recind[2];		// indicator var for password and description
 
 
-           char uid[9];				// connection vars
+           char uid[129];			// connection vars
            char passwd[19];
            char db[19];
 
@@ -1364,6 +1364,12 @@ int main(int argc, char *argv[]) {
 						  
 					  // get Debug info
 					  case M_DEBUG:
+					      if( strlen(uid) == 0 )
+					      {
+					      	huserid[0] = '\0';
+					      	EXEC SQL SELECT current user INTO :huserid FROM sysibm.sysdummy1;
+					      	strcpy( uid, huserid );
+					      }	
 					      printf("\nPwdSafe Application v%s (%s)\n",RELEASE,REVISION);
 					      printf("\nDatabase     : %s", db );
 					      printf("\nDatabase User: %s\n", uid );
@@ -1397,6 +1403,7 @@ int main(int argc, char *argv[]) {
 					      
 					  // show help
 					  case M_HELP:
+					      print_help();
 					      break;     
 
 				      default:
@@ -1572,23 +1579,34 @@ void print_menu( int admin )
 
 void print_help( void )
 {
-	printf("*****************************************\n");
-	printf(" 1 | a  - Add entry\n");
-	printf(" 2 | s  - Search (fuzzy)\n");
-	printf(" 3 | se - Search (exact)\n");
-	printf(" 4 | u  - Update Entry\n");
-	printf(" 5 | d  - Delete Entry\n");
-	printf(" 6 | l  - List all entries\n");
-	printf(" 7 | p  - Print all entries to .csv file\n" );
-	printf(" 8 | pp - Print all entries to file\n" );
-	printf(" 9 | c  - Change login password\n" );
-	printf("10 | e  - Export for sync\n" );
-	printf("11 | i  - Import and sync\n" );
-	printf("12 | id - Import and delete\n" );
-	//if( admin > 0 )
-	//{
- 	//	printf("13 | r  - Register new user\n" );
-	//}
-	printf("\n   Enter x to exit.\n");
-	printf("*****************************************\n");
+	printf("\n");
+	printf("***************************************************\n");
+	printf("*                   H E L P                       *\n");
+	printf("***************************************************\n");
+	printf("a  [account]     Add entry\n");
+	printf("s  [account]     Search (fuzzy)\n");
+	printf("se [account]     Search (exact)\n");
+	printf("u  [account]     Update Entry\n");
+	printf("d  [account]     Delete Entry\n");
+	printf("l                List all entries\n");
+	printf("\n");
+	printf("p  [filename]    Print all entries to .csv file\n" );
+	printf("pp [filename]    Print all entries to file\n" );
+	printf("\n");
+	printf("c                Change login password\n" );
+	printf("\n");
+	printf("e  [filename]    Export for sync\n" );
+	printf("i  [filename]    Import and sync\n" );
+	printf("id [filename]    Import and delete\n" );
+	printf("\n");
+	printf("r  [user]        Register new user\n" );
+	printf("\n");
+	printf("m                Print menu\n" );
+	printf("m0               Turn menu off\n" );
+	printf("m1               Turn menu on\n" );
+	printf("\n");
+	printf("D                Get application info\n" );
+	printf("\n");
+	printf("x                Exit\n");
+	printf("***************************************************\n");
 }
