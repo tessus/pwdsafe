@@ -15,7 +15,7 @@
 #include <ctype.h>
 #include "utilemb.h"
 
-#define	RELEASE	"1.5"
+#define	RELEASE	"1.9"
 #define REVISION "$Revision$"
 
 EXEC SQL INCLUDE SQLCA;
@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
            char enc_pwd2[65];       // pwd entered again
 
            short admin;				// host var, if user is admin -> allow register new users
+           short menu;				// host var for menu flag
            short there;				// host var to check if tables are there
 		   char huser[65];
 		   char username[65];
@@ -50,7 +51,7 @@ int main(int argc, char *argv[]) {
    char tbspace[256];
    char hst[1000];
    char atext[4];
-
+   char mtext[4];
 
    switch( argc )
    {
@@ -105,7 +106,9 @@ int main(int argc, char *argv[]) {
        printf(" 1 - Register user\n");
        printf(" 2 - Set admin flag for user\n");
        printf(" 3 - Remove admin flag for user\n");
-       printf(" 4 - List all users\n");
+       printf(" 4 - Set menu flag for user\n");
+       printf(" 5 - Remove menu flag for user\n");
+       printf(" 6 - List all users\n");
        printf("\n   Enter 0 to exit.\n");
        printf("********************************\n");
 
@@ -113,7 +116,7 @@ int main(int argc, char *argv[]) {
 
        fflush(stdin);
        fscanf( stdin, "%u", &numsel);
-       maxsel = 4;			// Max menue sections
+       maxsel = 6;			// Max menue sections
 
        if (numsel < 0 || numsel > maxsel)
           printf("\nInvalid selection. Please try again.\n");
@@ -281,23 +284,72 @@ int main(int argc, char *argv[]) {
  				}
 
          		break;
+         		
+         	 // Set menu flag for user
+			 case 4:
+
+                huser[0] = '\0';
+                fflush(stdin);
+	            printf( "\nUser: " ); fscanf( stdin, "%s", huser );
+
+			    EXEC SQL UPDATE pwdsafe.pwdlogin SET menu = 1 WHERE usr = :huser;
+
+                switch( sqlca.sqlcode )
+                {
+					case 100:
+					   printf( "\nUser does not exist.\n" );
+					   EXEC SQL ROLLBACK;
+					   break;
+					default:
+					   printf( "\nMenu flag set.\n" );
+					   EXEC SQL COMMIT;
+					   break;
+				}
+
+         		break;
+
+             // Remove menu flag for user
+ 			 case 5:
+
+                huser[0] = '\0';
+                fflush(stdin);
+	            printf( "\nUser: " ); fscanf( stdin, "%s", huser );
+
+ 			    EXEC SQL UPDATE pwdsafe.pwdlogin SET menu = 0 WHERE usr = :huser;
+
+                switch( sqlca.sqlcode )
+                {
+ 					case 100:
+ 					   printf( "\nUser does not exist.\n" );
+ 					   EXEC SQL ROLLBACK;
+ 					   break;
+					default:
+ 					   printf( "\nMenu flag removed.\n" );
+ 					   EXEC SQL COMMIT;
+ 					   break;
+ 				}
+
+         		break;
 
 
              // List all users
-             case 4:
+             case 6:
 
    				EXEC SQL DECLARE c1 CURSOR FOR
-				        SELECT usr, admin FROM pwdsafe.pwdlogin ORDER BY usr;
+				        SELECT usr, admin, menu FROM pwdsafe.pwdlogin ORDER BY usr;
 
 				EXEC SQL OPEN c1;
 				EMB_SQL_CHECK("OPEN CURSOR");
+				
+				printf( "\n%-32s %-5s   %-5s\n", "Username", "Admin", "Menu" );
 
 				do {
-				   EXEC SQL FETCH c1 INTO :username, :admin;
+				   EXEC SQL FETCH c1 INTO :username, :admin, :menu;
 
 				   if (SQLCODE != 0) break;
 
 				   atext[0] = '\0';
+				   mtext[0] = '\0';  
 
 				   if(admin != 0)
 				   {
@@ -305,8 +357,15 @@ int main(int argc, char *argv[]) {
 				   } else {
 					   strcpy( atext, "no" );
 				   }
+				   if(menu != 0)
+				   {
+					   strcpy( mtext, "yes" );
+				   } else {
+					   strcpy( mtext, "no" );
+				   }
 
-				   printf( "\n%-32s Admin: %s", username, atext );
+
+				   printf( "\n%-32s %-5s   %-5s", username, atext, mtext );
 
 				} while ( 1 );
 
