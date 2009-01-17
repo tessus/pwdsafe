@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
 	   if( strlen( itbspace ) == 0 )
 	      strcpy( itbspace, tbspace );
 
-   	   printf( "\nCreating tables...", tbspace );
+   	   printf( "\nCreating tables..." );
 
    	   // create the tables
 
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
        sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLOGIN\"  (	\
  		  \"USR\" VARCHAR(64) NOT NULL ,				\
  		  \"PWD\" VARCHAR(80) FOR BIT DATA NOT NULL ,	\
- 		  \"ADMIN\" INTEGER NOT NULL WITH DEFAULT 0 	\
+ 		  \"ADMIN\" INTEGER NOT NULL WITH DEFAULT 0 ,	\
  		  \"MENU\" INTEGER NOT NULL WITH DEFAULT 1)		\
  		  IN \"%s\" INDEX IN \"%s\"" , tbspace, itbspace );
 
@@ -194,6 +194,7 @@ int execi (char s[1000]) {
    EXEC SQL
       EXECUTE IMMEDIATE :sqlstmt;
 
+   //printf( "\n%s\n", s );
    //printf( "sqlcode: %d\n", sqlca.sqlcode);
 
    //EMB_SQL_CHECK("SQL Check");
@@ -224,8 +225,6 @@ int execi (char s[1000]) {
    EXEC SQL COMMIT;
 
    EMB_SQL_CHECK("COMMIT");
-
-   //printf( "\n%s\n", s );
 
    return 0;
 }
