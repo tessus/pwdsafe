@@ -18,19 +18,44 @@
 #include <ctype.h>
 #include "utilemb.h"
 
-#define	RELEASE	"1.8"
+#define	RELEASE	"1.9"
 #define REVISION "$Revision$"
 
 #define MAX_ACC_LEN		64
 #define MAX_UID_LEN		64
 #define MAX_PWD_LEN		64
 #define MAX_DESC_LEN	2048
+#define MAX_CMD_LEN		2
 
 #define MAX_PATH_LEN	255
+
+#define M_ADD			1
+#define M_SEARCH		2
+#define M_SEARCH_EXACT	3
+#define M_UPDATE		4
+#define M_DELETE		5
+#define M_LIST			6
+#define M_PRINT_CSV		7
+#define M_PRINT_TXT		8
+#define M_CHANGE		9
+#define M_EXPORT		10
+#define M_IMPORT		11
+#define M_IMPORT_DEL	12
+#define M_REGISTER		13
+#define M_MENU			80
+#define	M_MENU_ON		81
+#define M_MENU_OFF		82
+#define M_HELP			85
+#define M_DEBUG			88
+#define M_EXIT			0
+#define M_INVALID		-1		
 
 int DataExport(char *, char *);
 int DataImport(char *);
 char* getstr( int len );
+void print_menu( int admin );
+void print_help( void );
+	
 
 EXEC SQL INCLUDE SQLCA;
 
@@ -43,6 +68,7 @@ int main(int argc, char *argv[]) {
            char user[65];			// var for actual user
            char pwd[65];			// host var for hashed pwd in pwdsafe.pwdlogin
            short admin;				// host var, if user is admin -> allow register new users
+           short menu;				// host var for menu flag
            short there;				// host var to check if tables are there
            char account[65];
            char userid[65];
@@ -71,11 +97,14 @@ int main(int argc, char *argv[]) {
 
    int maxsel, numsel = 0;			// menue var;
    char numselh[5];					// menue help var
+   char *cmdline;					// line entered in menu
+   char cmd[5];						// command var
+   char cmdaccount[MAX_ACC_LEN+1];	// var for account, if entered in the menu
    struct sqlca sqlca;				// sqlca structure
    int ch, i = 0;					// vars for enc_pwd input
    char del[5], upd[5], tmp[5];    	// delete and update var (y/n)
    FILE *fp;						// filepointer fp
-   char filename[MAX_PATH_LEN];		// var for filename
+   char filename[MAX_PATH_LEN+1];	// var for filename
    char prompt, preview;
    int sync = 0;
    int rc = 0;
@@ -162,7 +191,7 @@ int main(int argc, char *argv[]) {
    tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
 #endif
 
-   EXEC SQL SELECT admin INTO :admin 
+   EXEC SQL SELECT menu INTO :menu 
        FROM pwdsafe.pwdlogin
        WHERE usr = :user AND pwd=encrypt(:enc_pwd,:enc_pwd);
 
@@ -180,68 +209,179 @@ int main(int argc, char *argv[]) {
 
    do
       {
+      	 memset(cmd,'\0',sizeof(cmd));
+      	 memset(cmdaccount,'\0',sizeof(cmdaccount));
+      	 cmdline = NULL;
          numsel = 0;
          printf("\n\n");
-         printf("************************************\n");
-         printf(" 1 - Add entry\n");
-         printf(" 2 - Search (fuzzy)\n");
-         printf(" 3 - Search (exact)\n");
-         printf(" 4 - Update Entry\n");
-         printf(" 5 - Delete Entry\n");
-         printf(" 6 - List all entries\n");
-         printf(" 7 - Print all entries to .csv file\n" );
-         printf(" 8 - Print all entries to file\n" );
-         printf(" 9 - Change login password\n" );
-         printf("10 - Export for sync\n" );
-         printf("11 - Import and sync\n" );
-         printf("12 - Import and delete\n" );
-         if( admin > 0 )
+         if( menu )
          {
-            printf("13 - Register new user\n" );
+         	print_menu( admin );
          }
-         printf("\n   Enter x to exit.\n");
-         printf("************************************\n");
-
+         
          printf("==> ");
 
          fflush(stdin);
-
-         strcpy( numselh, getstr(5) );
-
-         numsel = atoi( numselh );
-         if( numsel == 0 )
-            numsel = -1;
-
-         if( numselh[0] == 'x' )
-            numsel = 0;
          
+         cmdline = getstr(85);
+         strncpy( cmd, cmdline, 2 );
+                  
          maxsel = 12;			// Max menue sections
          if( admin > 0 )
          {
 			 maxsel++;
 		 }
-		 if( numselh[0] == 'D' )
+         
+         if( cmd[0] == 'a' )
          {
-         	maxsel = 99;
-            numsel = 88;
+         	numsel = M_ADD;
+         	cmdline+=2;
+         	strcpy( cmdaccount, cmdline);
          }
-		 
+         else if( cmd[0] == '/' )
+         {
+         	numsel = M_SEARCH;
+         	cmdline+=1;
+         	strcpy( cmdaccount, cmdline);
+         }  
+         else if( cmd[0] == 's' )
+         {
+         	numsel = M_SEARCH;
+         	cmdline+=2;
+         	
+         	if( cmd[1] == 'e' )
+         	{
+         		numsel = M_SEARCH_EXACT;
+         		cmdline+=1;
+         	}
+
+         	strcpy( cmdaccount, cmdline);
+         }
+         else if( cmd[0] == 'u' )
+         {
+         	numsel = M_UPDATE;
+         	cmdline+=2;
+         	strcpy( cmdaccount, cmdline);
+         }
+         else if( cmd[0] == 'd' )
+         {
+         	numsel = M_DELETE;
+         	cmdline+=2;
+         	strcpy( cmdaccount, cmdline);
+         }
+         else if( cmd[0] == 'l' )
+         {
+         	numsel = M_LIST;
+         }
+         else if( cmd[0] == 'p' )
+         {
+         	numsel = M_PRINT_CSV;
+         	cmdline+=2;
+         	
+         	if( cmd[1] == 'p' )
+         	{
+         		numsel = M_PRINT_TXT;
+         		cmdline+=1;
+         	}
+
+         	strcpy( cmdaccount, cmdline);
+         }
+         else if( cmd[0] == 'c' )
+         {
+         	numsel = M_CHANGE;
+         	cmdline+=2;
+         	strcpy( cmdaccount, cmdline);
+         }
+         else if( cmd[0] == 'e' )
+         {
+         	numsel = M_EXPORT;
+         	cmdline+=2;
+         	strcpy( cmdaccount, cmdline);
+         }
+         else if( cmd[0] == 'i' )
+         {
+         	numsel = M_IMPORT;
+         	cmdline+=2;
+         	
+         	if( cmd[1] == 'd' )
+         	{
+         		numsel = M_IMPORT_DEL;
+         		cmdline+=1;
+         	}
+
+         	strcpy( cmdaccount, cmdline);
+         }
+         else if( cmd[0] == 'r' )
+         {
+         	numsel = M_REGISTER;
+         	cmdline+=2;
+         	strcpy( cmdaccount, cmdline);
+         }
+         else if( cmd[0] == 'D' )
+         {
+         	numsel = M_DEBUG;
+         	maxsel = M_DEBUG;
+         }
+         else if( cmd[0] == 'm' )
+         {
+         	numsel = M_MENU;
+         	maxsel = M_MENU;
+         	cmdline+=2;
+         	strcpy( cmdaccount, cmdline);
+         	
+         	if( cmd[1] == '1' || cmdaccount[0] == '1' )
+         	{
+         		numsel = M_MENU_ON;
+         		maxsel = M_MENU_ON;
+         	}
+         	if( cmd[1] == '0' || cmdaccount[0] == '0' )
+         	{
+         		numsel = M_MENU_OFF;
+         		maxsel = M_MENU_OFF;
+         	}         	         	
+         }
+         else if( cmd[0] == 'h' )
+         {
+         	numsel = M_HELP;
+         	maxsel = M_HELP;
+         }
+         else if( cmd[0] == 'x' )
+         {
+         	numsel = M_EXIT;
+         }
+         else
+         {
+         	cmdline[0]='\0';
+         	numsel = atoi( cmd );
+         
+         	if( numsel == 0 )
+            	numsel = M_INVALID;
+         }
+                  	 
          if (numsel < 0 || numsel > maxsel)
             printf("\nInvalid selection. Please try again.\n");
          else
-            if (numsel != 0)
+            if (numsel != M_EXIT)
             {
                 switch (numsel)
 				   {
 				      // Search (exact)
-				      case 3:
-				          printf( "\nWhich account: " );
-				          acc[0] = '\0';
+				      case M_SEARCH_EXACT:
+				          if( strlen(cmdline) == 0 )
+					      {
+					      	printf( "\nWhich account: " );
+					        acc[0] = '\0';
+					        fflush(stdin);
 
-						  strcpy( acc, getstr(MAX_ACC_LEN) );
+					        strcpy( acc, getstr(MAX_ACC_LEN) );
 
-						  if( strlen( acc ) == 0 )
-						     break;
+						    if( strlen( acc ) == 0 )
+						    	break;
+					      } 
+					      else
+					      {
+					      	strcpy(acc,cmdline);
+					      }
 
 						  account[0] = '\0';
 						  userid[0] = '\0';
@@ -278,15 +418,22 @@ int main(int argc, char *argv[]) {
 
 
 					  // Search (fuzzy)
-					  case 2:
-					      printf( "\nWhich account: " );
-					      acc[0] = '\0';
-					      fflush(stdin);
+					  case M_SEARCH:
+					      if( strlen(cmdline) == 0 )
+					      {
+					      	printf( "\nWhich account: " );
+					        acc[0] = '\0';
+					        fflush(stdin);
 
-					      strcpy( acc, getstr(MAX_ACC_LEN) );
+					        strcpy( acc, getstr(MAX_ACC_LEN) );
 
-						  if( strlen( acc ) == 0 )
-						     break;
+						    if( strlen( acc ) == 0 )
+						    	break;
+					      } 
+					      else
+					      {
+					      	strcpy(acc,cmdline);
+					      }
 
 						  account[0] = '\0';
 						  userid[0] = '\0';
@@ -341,7 +488,7 @@ int main(int argc, char *argv[]) {
                           break;
 
    					  // List all entries
-   					  case 6:
+   					  case M_LIST:
    					      EXEC SQL DECLARE c1 CURSOR FOR
 					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
 						              FROM pwdsafe.pwdlist
@@ -382,16 +529,30 @@ int main(int argc, char *argv[]) {
                           break;
 
 				      // Add entry
-				      case 1:
+				      case M_ADD:
 				          account[0] = '\0';
 						  userid[0] = '\0';
 						  password[0] = '\0';
 						  description[0] = '\0';
 						  fflush(stdin);
 
-						  printf( "\nAccount    : " ); strcpy( account, getstr(MAX_ACC_LEN) );
-						  if( strlen( account ) == 0 )
-						     break;
+						  if( strlen(cmdline) == 0 )
+					      {
+					      	printf( "\nAccount: " );
+					        account[0] = '\0';
+					        fflush(stdin);
+
+					        strcpy( account, getstr(MAX_ACC_LEN) );
+
+						    if( strlen( account ) == 0 )
+						    	break;
+					      } 
+					      else
+					      {
+					      	printf( "\n" );
+					      	strcpy(account,cmdline);
+					      }
+
 						  printf( "Userid     : " ); strcpy( userid, getstr(MAX_UID_LEN) );
 						  printf( "Password   : " ); strcpy( password, getstr(MAX_PWD_LEN) );
    						  printf( "Description: " ); strcpy( description, getstr(MAX_DESC_LEN) );
@@ -417,15 +578,23 @@ int main(int argc, char *argv[]) {
 				          break;
 
 				      // Update Entry
-				      case 4:
-				          printf( "\nWhich account: " );
-						  acc[0] = '\0';
-						  fflush(stdin);
+				      case M_UPDATE:
+				          if( strlen(cmdline) == 0 )
+					      {
+					      	printf( "\nWhich account: " );
+					        acc[0] = '\0';
+					        fflush(stdin);
 
-						  strcpy( acc, getstr(MAX_ACC_LEN) );
+					        strcpy( acc, getstr(MAX_ACC_LEN) );
 
-						  if( strlen( acc ) == 0 )
-						     break;
+						    if( strlen( acc ) == 0 )
+						    	break;
+					      } 
+					      else
+					      {
+					      	strcpy(acc,cmdline);
+					      }
+
 
 						  EXEC SQL DECLARE c5 CURSOR FOR
 					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
@@ -553,15 +722,22 @@ int main(int argc, char *argv[]) {
 				          break;
 
 				      // Delete Entry
-				      case 5:
-				          printf( "\nWhich account: " );
-						  acc[0] = '\0';
-						  fflush(stdin);
+				      case M_DELETE:
+				          if( strlen(cmdline) == 0 )
+					      {
+					      	printf( "\nWhich account: " );
+					        acc[0] = '\0';
+					        fflush(stdin);
 
-						  strcpy( acc, getstr(MAX_ACC_LEN) );
+					        strcpy( acc, getstr(MAX_ACC_LEN) );
 
-						  if( strlen( acc ) == 0 )
-						     break;
+						    if( strlen( acc ) == 0 )
+						    	break;
+					      } 
+					      else
+					      {
+					      	strcpy(acc,cmdline);
+					      }
 
 						  EXEC SQL DECLARE c4 CURSOR FOR
 					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
@@ -639,13 +815,35 @@ int main(int argc, char *argv[]) {
 				          break;
 
 				      // Register new user
-				      case 13:
+				      case M_REGISTER:
 					  	  reguser[0] = '\0';
 					  	  regpwd[0] = '\0';
+					  	  
+					  	  if( strlen(cmdline) == 0 )
+					      {
+					      	printf( "\nUser    : " );
+					        reguser[0] = '\0';
+					        fflush(stdin);
 
-					      printf( "\nUser    : " ); strcpy( reguser, getstr(MAX_UID_LEN) );
-					  	  printf( "Pwd     : " ); strcpy( regpwd, getstr(MAX_PWD_LEN) );
+					        strcpy( reguser, getstr(MAX_UID_LEN) );
 
+						    if( strlen( reguser ) == 0 )
+						    	break;
+					      } 
+					      else
+					      {
+					      	strcpy(reguser,cmdline);
+					      	printf("\n");
+					      }
+
+					  	  printf( "Password: " ); strcpy( regpwd, getstr(MAX_PWD_LEN) );
+
+					  	  if( strlen( regpwd ) == 0 )
+					  	  {
+					  	  		printf( "\n\nUser NOT registered.\n" );
+						    	break;
+					  	  }
+					  	  
 					  	  if(strlen(regpwd) < 6)
 					  	  {
 							  printf( "\n\nPassword has to be at least 6 bytes.\n" );
@@ -666,22 +864,30 @@ int main(int argc, char *argv[]) {
 						  else {
 							  EMB_SQL_CHECK("INSERT");
 							  EXEC SQL COMMIT;
+							  printf( "\n\nUser registered.\n" );
 						  }
 
    						  break;
 
                       // print to csv file
-                      case 7:
-                          printf( "\nEnter [path]filename: " );
-						  filename[0] = '\0';
+                      case M_PRINT_CSV:
+                          if( strlen(cmdline) == 0 )
+					      {
+					      	printf( "\nEnter [path]filename: " );
+					        filename[0] = '\0';
+					        fflush(stdin);
 
-						  fflush(stdin);
-						  strcpy( filename, getstr(MAX_PATH_LEN) );
+					        strcpy( filename, getstr(MAX_PATH_LEN) );
 
-                          if( strlen( filename ) == 0 )
-                             break; //fp = fopen( "pwdfile.csv", "w" );
-						  else
-                             fp = fopen( filename, "w" );
+						    if( strlen( filename ) == 0 )
+						    	break; //fp = fopen( "pwdfile.csv", "w" );
+					      } 
+					      else
+					      {
+					      	strcpy(filename,cmdline);
+					      }
+					      
+					      fp = fopen( filename, "w" );
 
                           if( fp == NULL )
                           {
@@ -733,17 +939,24 @@ int main(int argc, char *argv[]) {
                           break;
 
                       // print to file
-                      case 8:
-                          printf( "\nEnter [path]filename: " );
-						  filename[0] = '\0';
+                      case M_PRINT_TXT:
+                          if( strlen(cmdline) == 0 )
+					      {
+					      	printf( "\nEnter [path]filename: " );
+					        filename[0] = '\0';
+					        fflush(stdin);
 
-						  fflush(stdin);
-						  strcpy( filename, getstr(MAX_PATH_LEN) );
+					        strcpy( filename, getstr(MAX_PATH_LEN) );
 
-                          if( strlen( filename ) == 0 )
-                             break; //fp = fopen( "pwdfile.txt", "w" );
-						  else
-                             fp = fopen( filename, "w" );
+						    if( strlen( filename ) == 0 )
+						    	break; //fp = fopen( "pwdfile.csv", "w" );
+					      } 
+					      else
+					      {
+					      	strcpy(filename,cmdline);
+					      }
+					      
+					      fp = fopen( filename, "w" );
 
                           if( fp == NULL )
                           {
@@ -793,11 +1006,17 @@ int main(int argc, char *argv[]) {
                           break;
 
 					  // Change login password
-				      case 9:
+				      case M_CHANGE:
 					  	  regpwd[0] = '\0';
 
 					      printf( "\nNew password: " ); strcpy( regpwd, getstr(MAX_PWD_LEN) );
-
+					      
+					      if( strlen( regpwd ) == 0 )
+					  	  {
+					  	  		printf( "\n\nPassword NOT changed.\n" );
+						    	break;
+					  	  }
+					  	  
 					  	  if(strlen(regpwd) < 6)
 					  	  {
 							  printf( "\n\nPassword has to be at least 6 bytes.\n" );
@@ -818,23 +1037,35 @@ int main(int argc, char *argv[]) {
 
 					      if( sqlca.sqlcode == 0 )
 					      {
+					      	  printf( "\n\nPassword changed.\n" );
 							  enc_pwd[0] = '\0';
 							  strcpy( enc_pwd, regpwd );
+						  }
+						  else
+						  {
+						      printf( "\n\nPassword NOT changed.\n" );
 						  }
 
 					      break;
 
 					  // Export for sync
-					  case 10:
-					      printf( "\nEnter [path]filename: " );
-					      filename[0] = '\0';
+					  case M_EXPORT:
+					      if( strlen(cmdline) == 0 )
+					      {
+					      	printf( "\nEnter [path]filename: " );
+					        filename[0] = '\0';
+					        fflush(stdin);
 
-						  fflush(stdin);
-						  strcpy( filename, getstr(MAX_PATH_LEN) );
+					        strcpy( filename, getstr(MAX_PATH_LEN) );
 
-						  if( strlen( filename ) == 0 )
-						     break;
-
+						    if( strlen( filename ) == 0 )
+						    	break; 					      
+						  } 
+					      else
+					      {
+					      	strcpy(filename,cmdline);
+					      }
+					      
                           rc = DataExport( filename, user );
 
                           if( rc != 0 )
@@ -844,18 +1075,23 @@ int main(int argc, char *argv[]) {
 
 					  // 11 - Import and sync
 					  // 12 - Import and delete accounts that are not in imported table
-					  case 11:
-					  case 12:
-					      //printf( "%d\n", numsel );
-					      //break;
-						  printf( "\nEnter [path]filename: " );
-						  filename[0] = '\0';
+					  case M_IMPORT:
+					  case M_IMPORT_DEL:
+						  if( strlen(cmdline) == 0 )
+					      {
+					      	printf( "\nEnter [path]filename: " );
+					        filename[0] = '\0';
+					        fflush(stdin);
 
-						  fflush(stdin);
-						  strcpy( filename, getstr(MAX_PATH_LEN) );
+					        strcpy( filename, getstr(MAX_PATH_LEN) );
 
-						  if( strlen( filename ) == 0 )
-						     break;
+						    if( strlen( filename ) == 0 )
+						    	break; 					      
+						  } 
+					      else
+					      {
+					      	strcpy(filename,cmdline);
+					      }
 
 					      EXEC SQL CREATE TABLE "PWDSAFE"."TPWDLIST" LIKE "PWDSAFE"."PWDLIST";
 
@@ -929,7 +1165,7 @@ int main(int argc, char *argv[]) {
 						  if( prompt != 'n' )
 						     prompt = 'y';
 
-						  if( numsel == 11 )
+						  if( numsel == M_IMPORT )
 						  {
 						  EXEC SQL OPEN u1;
 						  EMB_SQL_CHECK("OPEN CURSOR u1");
@@ -1059,7 +1295,7 @@ int main(int argc, char *argv[]) {
 						     goto eloop_sync4;
 					      }
 
-					      if( numsel == 12 )
+					      if( numsel == M_IMPORT_DEL )
 					      {
 						  EXEC SQL OPEN u3;
 						  EMB_SQL_CHECK("OPEN CURSOR u3");
@@ -1121,15 +1357,47 @@ int main(int argc, char *argv[]) {
 						  EXEC SQL COMMIT;
 
 						  EXEC SQL DROP TABLE "PWDSAFE"."TPWDLIST";
+						  
+						  EXEC SQL COMMIT;
 
 						  break;
 						  
 					  // get Debug info
-					  case 88:
+					  case M_DEBUG:
+					      printf("\nPwdSafe Application v%s (%s)\n",RELEASE,REVISION);
 					      printf("\nDatabase     : %s", db );
 					      printf("\nDatabase User: %s\n", uid );
 					      printf("\nPwdSafe User : %s\n", user );
-					      break;					      
+					      break;	
+					      
+					  // print menu
+					  case M_MENU:
+					      if( menu != 1 )
+					      {
+					      	printf("\n");
+					        print_menu(admin);
+					      }
+					      break;	
+					      
+					  // turn menu on
+					  case M_MENU_ON:
+					      EXEC SQL UPDATE pwdsafe.pwdlogin SET menu = 1 WHERE usr = :user;
+					      EMB_SQL_CHECK("UPDATE MENU ON");
+					      EXEC SQL COMMIT;
+					      menu = 1;
+					      break;	
+					  
+					  // turn menu off
+					  case M_MENU_OFF:
+					      EXEC SQL UPDATE pwdsafe.pwdlogin SET menu = 0 WHERE usr = :user;
+					      EMB_SQL_CHECK("UPDATE MENU OFF");
+					      EXEC SQL COMMIT;
+					      menu = 0;
+					      break;	 
+					      
+					  // show help
+					  case M_HELP:
+					      break;     
 
 				      default:
 				          printf("\nError in Reset... should not happen... exiting...\n");
@@ -1139,7 +1407,7 @@ int main(int argc, char *argv[]) {
 
             } /* if */
 
-   } while (numsel != 0);
+   } while (numsel != M_EXIT);
 
    memset(enc_pwd,'\0',sizeof(enc_pwd));
 
@@ -1277,4 +1545,50 @@ char* getstr( int len )
 	result[strlen(result)-1] = '\0';
 
 	return result;
+}
+
+void print_menu( int admin )
+{
+	printf("*****************************************\n");
+	printf(" 1 | a  - Add entry\n");
+	printf(" 2 | s  - Search (fuzzy)\n");
+	printf(" 3 | se - Search (exact)\n");
+	printf(" 4 | u  - Update Entry\n");
+	printf(" 5 | d  - Delete Entry\n");
+	printf(" 6 | l  - List all entries\n");
+	printf(" 7 | p  - Print all entries to .csv file\n" );
+	printf(" 8 | pp - Print all entries to file\n" );
+	printf(" 9 | c  - Change login password\n" );
+	printf("10 | e  - Export for sync\n" );
+	printf("11 | i  - Import and sync\n" );
+	printf("12 | id - Import and delete\n" );
+	if( admin > 0 )
+	{
+ 		printf("13 | r  - Register new user\n" );
+	}
+	printf("\n   Enter x to exit.\n");
+	printf("*****************************************\n");
+}
+
+void print_help( void )
+{
+	printf("*****************************************\n");
+	printf(" 1 | a  - Add entry\n");
+	printf(" 2 | s  - Search (fuzzy)\n");
+	printf(" 3 | se - Search (exact)\n");
+	printf(" 4 | u  - Update Entry\n");
+	printf(" 5 | d  - Delete Entry\n");
+	printf(" 6 | l  - List all entries\n");
+	printf(" 7 | p  - Print all entries to .csv file\n" );
+	printf(" 8 | pp - Print all entries to file\n" );
+	printf(" 9 | c  - Change login password\n" );
+	printf("10 | e  - Export for sync\n" );
+	printf("11 | i  - Import and sync\n" );
+	printf("12 | id - Import and delete\n" );
+	//if( admin > 0 )
+	//{
+ 	//	printf("13 | r  - Register new user\n" );
+	//}
+	printf("\n   Enter x to exit.\n");
+	printf("*****************************************\n");
 }
