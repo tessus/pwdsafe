@@ -137,7 +137,8 @@ int main(int argc, char *argv[]) {
        sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLOGIN\"  (	\
  		  \"USR\" VARCHAR(64) NOT NULL ,				\
  		  \"PWD\" VARCHAR(80) FOR BIT DATA NOT NULL ,	\
- 		  \"ADMIN\" INTEGER NOT NULL WITH DEFAULT 0 )	\
+ 		  \"ADMIN\" INTEGER NOT NULL WITH DEFAULT 0 	\
+ 		  \"MENU\" INTEGER NOT NULL WITH DEFAULT 1)		\
  		  IN \"%s\" INDEX IN \"%s\"" , tbspace, itbspace );
 
        execi( hst );
