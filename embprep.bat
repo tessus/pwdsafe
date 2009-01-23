@@ -22,8 +22,8 @@ goto case3
    db2 connect to %2 user %3 using %4
 
 :prep_step
-db2 prep %1.sqc bindfile using %1W.bnd package using %1W sqlerror continue validate run
-if exist "utilemb.sqc" db2 prep utilemb.sqc bindfile using utilembW.bnd package using utilembW
+db2 prep %1.sqc bindfile using %1W.bnd package using %1W blocking all sqlerror continue validate run
+if exist "utilemb.sqc" db2 prep utilemb.sqc bindfile using utilembW.bnd package using utilembW blocking all
 goto bind_step
 
 :bind_step
