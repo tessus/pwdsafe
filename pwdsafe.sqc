@@ -1101,6 +1101,7 @@ int main(int argc, char *argv[]) {
 							  EXEC SQL COMMIT;
 						  }
 
+						  EXEC SQL GRANT CONTROL ON TABLE pwdsafe.tpwdlist TO PUBLIC;
 						  rc = DataImport( filename );
 
 						  if( rc != 0 )
@@ -1108,7 +1109,8 @@ int main(int argc, char *argv[]) {
 							  printf( "\n\n Error: import from file %s\n", filename );
 							  break;
 						  }
-
+						  
+						  EXEC SQL COMMIT;
 
 						  EXEC SQL DECLARE u1 CURSOR FOR
 						          SELECT l.account, l.userid, decrypt_char(l.password, :enc_pwd), l.description,
