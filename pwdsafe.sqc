@@ -538,7 +538,7 @@ int main(int argc, char *argv[]) {
 
 						  if( strlen(cmdline) == 0 )
 					      {
-					      	printf( "\nAccount: " );
+					      	printf( "\nAccount    : " );
 					        account[0] = '\0';
 					        fflush(stdin);
 
