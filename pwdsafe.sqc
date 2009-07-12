@@ -191,13 +191,21 @@ int main(int argc, char *argv[]) {
    tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
 #endif
 
+   if( strlen(enc_pwd) < 6 )
+   {
+	   printf( "\n\nPassword has to be at least 6 characters long.\n\n" );
+	   EXEC SQL CONNECT RESET;
+       EMB_SQL_CHECK("CONNECT RESET");
+	   return 1;
+   }   
+
    EXEC SQL SELECT menu INTO :menu 
        FROM pwdsafe.pwdlogin
        WHERE usr = :user AND pwd=encrypt(:enc_pwd,:enc_pwd);
 
    if( sqlca.sqlcode == 100 )
    {
-	   printf( "\n\nUser / Password do not match.\n" );
+	   printf( "\n\nUser / Password do not match.\n\n" );
 	   EXEC SQL CONNECT RESET;
        EMB_SQL_CHECK("CONNECT RESET");
 	   return 1;
