@@ -18,7 +18,7 @@
 #include <ctype.h>
 #include "utilemb.h"
 
-#define	RELEASE	"1.9"
+#define	RELEASE	"1.9.1"
 #define REVISION "$Revision$"
 
 #define MAX_ACC_LEN		64
@@ -114,6 +114,18 @@ int main(int argc, char *argv[]) {
    db[0] = '\0';
    uid[0] = '\0';
    passwd[0] = '\0';
+   
+   if( (argc > 1) && ((strcmp( argv[1], "-v" ) == 0) || (strcmp( argv[1], "--version" ) == 0)) )
+   {
+       printf( "\nPwdSafe Application v%s (%s)\n\n", RELEASE, REVISION );
+       return 0;
+   }
+
+   if( (argc > 1) && (strcmp( argv[1], "-h" ) == 0) )
+   {
+       printf( "\nUSAGE: %s database [userid passwd]\n\n", argv[0] );
+       return 1;
+   }
 
    switch( argc )
    {
@@ -608,6 +620,7 @@ int main(int argc, char *argv[]) {
 					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
 						             FROM pwdsafe.pwdlist
 						          WHERE usr = :user AND ucase(account) LIKE ucase('%' concat :acc concat '%')
+						          ORDER BY account
 						          FOR UPDATE;
 
 						  EXEC SQL OPEN c5;
@@ -751,6 +764,7 @@ int main(int argc, char *argv[]) {
 					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
 						             FROM pwdsafe.pwdlist
 						          WHERE usr = :user AND ucase(account) LIKE ucase('%' concat :acc concat '%')
+						          ORDER BY account
 						          FOR UPDATE;
 
 						  EXEC SQL OPEN c4;
@@ -1481,7 +1495,7 @@ int DataExport(char *dataFileName, char *user)
 
  /* display import info */
   printf("\n   Export info.\n");
-  printf("      rows exported : %ld\n", (int)outputInfo.oRowsExported);
+  printf("      rows exported : %ld\n", outputInfo.oRowsExported);
 
   return 0;
 } /* DataExport */
@@ -1544,10 +1558,10 @@ int DataImport(char *dataFileName)
 
  /* display import info */
   printf("\n   Import info.\n");
-  printf("      rows read     : %ld\n", (int)outputInfo.oRowsRead);
-  printf("      rows inserted : %ld\n", (int)outputInfo.oRowsInserted);
-  printf("      rows rejected : %ld\n", (int)outputInfo.oRowsRejected);
-  printf("      rows committed: %ld\n", (int)outputInfo.oRowsCommitted);
+  printf("      rows read     : %ld\n", outputInfo.oRowsRead);
+  printf("      rows inserted : %ld\n", outputInfo.oRowsInserted);
+  printf("      rows rejected : %ld\n", outputInfo.oRowsRejected);
+  printf("      rows committed: %ld\n", outputInfo.oRowsCommitted);
 
   return 0;
 } /* DataImport */
