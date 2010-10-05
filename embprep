@@ -7,7 +7,9 @@
 #
 # Usage: embprep <prog_name> [ <db_name> [ <userid> <password> ]]
 
-SUFFIX=`uname -s | cut -b -1`
+BITWIDTH=`LANG=C db2level | awk '/bits/{print $5}' | cut -b 2-3`
+SUFFIX2=`uname -s | cut -b -1`
+SUFFIX=$SUFFIX2$BITWIDTH
 
 # Connect to a database.
 if (test $# -lt 2)
