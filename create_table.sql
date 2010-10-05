@@ -1,4 +1,6 @@
-CONNECT TO <database>;
+-- $Id$
+
+--CONNECT TO <database>;
 
 ------------------------------------------------
 -- DDL Statements for Schemas
@@ -78,7 +80,7 @@ GRANT CONNECT ON DATABASE  TO GROUP "DB2USERS" ;
 
 COMMIT WORK;
 
-CONNECT RESET;
+--CONNECT RESET;
 
-TERMINATE;
+--TERMINATE;
 
