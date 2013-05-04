@@ -18,7 +18,7 @@
 #include <ctype.h>
 #include "utilemb.h"
 
-#define	RELEASE	"1.9.1"
+#define	RELEASE	"1.10"
 #define REVISION "$Revision$"
 
 #define MAX_ACC_LEN		64
@@ -39,18 +39,20 @@
 #define M_PRINT_TXT		8
 #define M_CHANGE		9
 #define M_EXPORT		10
-#define M_IMPORT		11
-#define M_IMPORT_DEL	12
-#define M_REGISTER		13
+#define M_EXPORT_MSEC	11
+#define M_IMPORT		12
+#define M_IMPORT_DEL	13
+#define M_REGISTER		14
 #define M_MENU			80
 #define	M_MENU_ON		81
 #define M_MENU_OFF		82
 #define M_HELP			85
 #define M_DEBUG			88
 #define M_EXIT			0
-#define M_INVALID		-1		
+#define M_INVALID		-1	
+#define M_MAX			M_REGISTER - 1	
 
-int DataExport(char *, char *);
+int DataExport(char *, char *, char *, int);
 int DataImport(char *);
 char* getstr( int len );
 void print_menu( int admin );
@@ -60,7 +62,6 @@ void print_help( void );
 EXEC SQL INCLUDE SQLCA;
 
 int main(int argc, char *argv[]) {
-
 
    EXEC SQL BEGIN DECLARE SECTION;
            char reguser[65];
@@ -84,11 +85,9 @@ int main(int argc, char *argv[]) {
            short int tsind;			// indicator var for ts
            short int recind[2];		// indicator var for password and description
 
-
            char uid[129];			// connection vars
            char passwd[19];
            char db[19];
-
    EXEC SQL END DECLARE SECTION;
 
 #if defined (LINUX) || defined (DARWIN)
@@ -99,6 +98,7 @@ int main(int argc, char *argv[]) {
    char numselh[5];					// menue help var
    char *cmdline;					// line entered in menu
    char cmd[5];						// command var
+
    char cmdaccount[MAX_ACC_LEN+1];	// var for account, if entered in the menu
    struct sqlca sqlca;				// sqlca structure
    int ch, i = 0;					// vars for enc_pwd input
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
          cmdline = getstr(85);
          strncpy( cmd, cmdline, 2 );
                   
-         maxsel = 12;			// Max menue sections
+         maxsel = M_MAX;			// Max menue sections
          if( admin > 0 )
          {
 			 maxsel++;
@@ -316,6 +316,13 @@ int main(int argc, char *argv[]) {
          {
          	numsel = M_EXPORT;
          	cmdline+=2;
+         	
+         	if( cmd[1] == 'm' )
+         	{
+         		numsel = M_EXPORT_MSEC;
+         		cmdline+=1;
+         	}
+         	
          	strcpy( cmdaccount, cmdline);
          }
          else if( cmd[0] == 'i' )
@@ -1071,7 +1078,9 @@ int main(int argc, char *argv[]) {
 					      break;
 
 					  // Export for sync
+					  // Export for mSecure
 					  case M_EXPORT:
+					  case M_EXPORT_MSEC:
 					      if( strlen(cmdline) == 0 )
 					      {
 					      	printf( "\nEnter [path]filename: " );
@@ -1088,7 +1097,7 @@ int main(int argc, char *argv[]) {
 					      	strcpy(filename,cmdline);
 					      }
 					      
-                          rc = DataExport( filename, user );
+                          rc = DataExport( filename, user, enc_pwd, numsel );
 
                           if( rc != 0 )
                              printf( "\n\n Error: export to file %s\n", filename );
@@ -1447,123 +1456,140 @@ int main(int argc, char *argv[]) {
    return 0;
 }
 
-int DataExport(char *dataFileName, char *user)
+//export to e.csv of del select case substr(account,1,3) when 'ibm' then 'IBM' else 'Personal' END, 'PwdSafe', account, description, userid, decrypt_char(password, :pwd), ts from pwdsafe.pwdlist where usr='tessus' order by account
+// enc_pwd
+
+int DataExport(char *dataFileName, char *user, char *enc_pwd, int sel)
 {
-  int rc = 0;
-  struct sqlca sqlca = {0};
-  struct sqldcol dataDescriptor = {0};
-  char actionString[256];
-  struct sqllob *pAction = {0};
-  char msgFileName[MAX_PATH_LEN];
-  struct db2ExportOut outputInfo = {0};
-  struct db2ExportStruct exportParmStruct = {0};
+	int rc = 0;
+	struct sqlca sqlca = {0};
+	struct sqldcol dataDescriptor = {0};
+	char actionString[256];
+	struct sqllob *pAction = {0};
+	char msgFileName[MAX_PATH_LEN];
+	struct db2ExportOut outputInfo = {0};
+	struct db2ExportStruct exportParmStruct = {0};
 
-  /* export data */
-  dataDescriptor.dcolmeth = SQL_METH_D;
-  sprintf( actionString, "SELECT * FROM pwdsafe.pwdlist where usr = '%s'", user );
-  pAction = (struct sqllob *)malloc(sizeof(sqluint32) +
-                                     sizeof(actionString) + 1);
-  pAction->length = strlen(actionString);
-  strcpy(pAction->data, actionString);
-  strcpy(msgFileName, "tbexport.MSG");
+	/* export data */
+	dataDescriptor.dcolmeth = SQL_METH_D;
+	if( sel == M_EXPORT )
+	{
+		sprintf( actionString, "SELECT * FROM pwdsafe.pwdlist WHERE usr = '%s'", user );
+	}
+	else if( sel == M_EXPORT_MSEC )
+	{
+		sprintf( actionString, "select case substr(account, 1, 3) when 'ibm' then 'IBM' else 'Personal' end, 'PwdSafe', account, description, userid, decrypt_char(password, '%s'), ts from pwdsafe.pwdlist where usr = '%s' order by account", enc_pwd, user );
+	}
+	pAction = (struct sqllob *)malloc(sizeof(sqluint32) +
+	                                  sizeof(actionString) + 1);
+	pAction->length = strlen(actionString);
+	strcpy(pAction->data, actionString);
+	strcpy(msgFileName, "tbexport.MSG");
 
-  exportParmStruct.piDataFileName    = dataFileName;
-  exportParmStruct.piLobPathList     = NULL;
-  exportParmStruct.piLobFileList     = NULL;
-  exportParmStruct.piDataDescriptor  = &dataDescriptor;
-  exportParmStruct.piActionString    = pAction;
-  exportParmStruct.piFileType        = SQL_IXF;
-  exportParmStruct.piFileTypeMod     = NULL;
+	exportParmStruct.piDataFileName    = dataFileName;
+	exportParmStruct.piLobPathList     = NULL;
+	exportParmStruct.piLobFileList     = NULL;
+	exportParmStruct.piDataDescriptor  = &dataDescriptor;
+	exportParmStruct.piActionString    = pAction;
+	if( sel == M_EXPORT )
+	{
+		exportParmStruct.piFileType    = SQL_IXF;
+	}
+	else if( sel == M_EXPORT_MSEC )
+	{
+		exportParmStruct.piFileType    = SQL_DEL;
+	}
+	exportParmStruct.piFileTypeMod     = NULL;
 #ifdef WIN32
-  exportParmStruct.piMsgFileName     = msgFileName;
+	exportParmStruct.piMsgFileName     = msgFileName;
 #else
-  exportParmStruct.piMsgFileName     = "/dev/null";
+	exportParmStruct.piMsgFileName     = "/dev/null";
 #endif
-  exportParmStruct.iCallerAction     = SQLU_INITIAL;
-  exportParmStruct.poExportInfoOut   = &outputInfo;
+	exportParmStruct.iCallerAction     = SQLU_INITIAL;
+	exportParmStruct.poExportInfoOut   = &outputInfo;
 
-  /* export data */
-  db2Export(db2Version820,
-            &exportParmStruct,
-            &sqlca);
+	/* export data */
+	db2Export(db2Version820,
+	          &exportParmStruct,
+			  &sqlca);
 
-  /* free memory allocated */
-  free(pAction);
+	/* free memory allocated */
+	free(pAction);
 
-  if( (int)outputInfo.oRowsExported == 0 )
-     return -1;
+	if( (int)outputInfo.oRowsExported == 0 )
+		return -1;
 
- /* display import info */
-  printf("\n   Export info.\n");
-  printf("      rows exported : %ld\n", outputInfo.oRowsExported);
+	/* display export info */
+	printf("\n   Export info.\n");
+	printf("      rows exported : %ld\n", outputInfo.oRowsExported);
 
-  return 0;
+	return 0;
 } /* DataExport */
 
 int DataImport(char *dataFileName)
 {
-  int rc = 0;
-  struct sqlca sqlca = {0};
-  struct sqldcol dataDescriptor = {0};
-  char actionString[256];
-  struct sqlchar *pAction = {0};
-  char msgFileName[MAX_PATH_LEN];
-  struct db2ImportIn inputInfo = {0};
-  struct db2ImportOut outputInfo = {0};
-  struct db2ImportStruct importParmStruct = {0};
-  //int commitcount = 10;
+	int rc = 0;
+	struct sqlca sqlca = {0};
+	struct sqldcol dataDescriptor = {0};
+	char actionString[256];
+	struct sqlchar *pAction = {0};
+	char msgFileName[MAX_PATH_LEN];
+	struct db2ImportIn inputInfo = {0};
+	struct db2ImportOut outputInfo = {0};
+	struct db2ImportStruct importParmStruct = {0};
+	//int commitcount = 10;
 
-  /* import table */
-  dataDescriptor.dcolmeth = SQL_METH_D;
-  strcpy(actionString, "INSERT INTO pwdsafe.tpwdlist");
-  pAction = (struct sqlchar *)malloc(sizeof(short) +
-                                     sizeof(actionString) + 1);
-  pAction->length = strlen(actionString);
-  strcpy(pAction->data, actionString);
-  strcpy(msgFileName, "tbimport.MSG");
+	/* import table */
+	dataDescriptor.dcolmeth = SQL_METH_D;
+	strcpy(actionString, "INSERT INTO pwdsafe.tpwdlist");
+	pAction = (struct sqlchar *)malloc(sizeof(short) +
+									   sizeof(actionString) + 1);
+	pAction->length = strlen(actionString);
+	strcpy(pAction->data, actionString);
+	strcpy(msgFileName, "tbimport.MSG");
 
-  /* Setup db2ImportIn structure */
-  inputInfo.iRowcount = inputInfo.iRestartcount = 0;
-  inputInfo.iSkipcount = inputInfo.iWarningcount = 0;
-  inputInfo.iNoTimeout = 0;
-  inputInfo.iAccessLevel = SQLU_ALLOW_NO_ACCESS;
-  //inputInfo.piCommitcount = &commitcount;
+	/* Setup db2ImportIn structure */
+	inputInfo.iRowcount = inputInfo.iRestartcount = 0;
+	inputInfo.iSkipcount = inputInfo.iWarningcount = 0;
+	inputInfo.iNoTimeout = 0;
+	inputInfo.iAccessLevel = SQLU_ALLOW_NO_ACCESS;
+	//inputInfo.piCommitcount = &commitcount;
 
-  importParmStruct.piDataFileName    = dataFileName;
-  importParmStruct.piLobPathList     = NULL;
-  importParmStruct.piDataDescriptor  = &dataDescriptor;
-  importParmStruct.piActionString    = pAction;
-  importParmStruct.piFileType        = SQL_IXF;
-  importParmStruct.piFileTypeMod     = NULL;
+	importParmStruct.piDataFileName    = dataFileName;
+	importParmStruct.piLobPathList     = NULL;
+	importParmStruct.piDataDescriptor  = &dataDescriptor;
+	importParmStruct.piActionString    = pAction;
+	importParmStruct.piFileType        = SQL_IXF;
+	importParmStruct.piFileTypeMod     = NULL;
 #ifdef WIN32
-  importParmStruct.piMsgFileName     = msgFileName;
+	importParmStruct.piMsgFileName     = msgFileName;
 #else
-  importParmStruct.piMsgFileName     = "/dev/null";
+	importParmStruct.piMsgFileName     = "/dev/null";
 #endif
-  importParmStruct.piImportInfoIn    = &inputInfo;
-  importParmStruct.poImportInfoOut   = &outputInfo;
-  importParmStruct.piNullIndicators  = NULL;
-  importParmStruct.iCallerAction     = SQLU_INITIAL;
+	importParmStruct.piImportInfoIn    = &inputInfo;
+	importParmStruct.poImportInfoOut   = &outputInfo;
+	importParmStruct.piNullIndicators  = NULL;
+	importParmStruct.iCallerAction     = SQLU_INITIAL;
 
-  /* import table */
-  db2Import(db2Version820,
-            &importParmStruct,
-            &sqlca);
+	/* import table */
+	db2Import(db2Version820,
+	          &importParmStruct,
+			  &sqlca);
 
-  /* free memory allocated */
-  free(pAction);
+	/* free memory allocated */
+	free(pAction);
 
-  if( ((int)outputInfo.oRowsRead != (int)outputInfo.oRowsInserted) || (int)outputInfo.oRowsRead == 0 )
-     return -1;
+	if( ((int)outputInfo.oRowsRead != (int)outputInfo.oRowsInserted) || (int)outputInfo.oRowsRead == 0 )
+		return -1;
 
- /* display import info */
-  printf("\n   Import info.\n");
-  printf("      rows read     : %ld\n", outputInfo.oRowsRead);
-  printf("      rows inserted : %ld\n", outputInfo.oRowsInserted);
-  printf("      rows rejected : %ld\n", outputInfo.oRowsRejected);
-  printf("      rows committed: %ld\n", outputInfo.oRowsCommitted);
+	/* display import info */
+	printf("\n   Import info.\n");
+	printf("      rows read     : %ld\n", outputInfo.oRowsRead);
+	printf("      rows inserted : %ld\n", outputInfo.oRowsInserted);
+	printf("      rows rejected : %ld\n", outputInfo.oRowsRejected);
+	printf("      rows committed: %ld\n", outputInfo.oRowsCommitted);
 
-  return 0;
+	return 0;
 } /* DataImport */
 
 char* getstr( int len )
@@ -1584,18 +1610,19 @@ void print_menu( int admin )
 	printf(" 1 | a  - Add entry\n");
 	printf(" 2 | s  - Search (fuzzy)\n");
 	printf(" 3 | se - Search (exact)\n");
-	printf(" 4 | u  - Update Entry\n");
-	printf(" 5 | d  - Delete Entry\n");
+	printf(" 4 | u  - Update entry\n");
+	printf(" 5 | d  - Delete entry\n");
 	printf(" 6 | l  - List all entries\n");
 	printf(" 7 | p  - Print all entries to .csv file\n" );
 	printf(" 8 | pp - Print all entries to file\n" );
 	printf(" 9 | c  - Change login password\n" );
 	printf("10 | e  - Export for sync\n" );
-	printf("11 | i  - Import and sync\n" );
-	printf("12 | id - Import and delete\n" );
+	printf("11 | em - Export for mSecure\n" );
+	printf("12 | i  - Import and sync\n" );
+	printf("13 | id - Import and delete\n" );
 	if( admin > 0 )
 	{
- 		printf("13 | r  - Register new user\n" );
+ 		printf("14 | r  - Register new user\n" );
 	}
 	printf("\n   Enter x to exit.\n");
 	printf("*****************************************\n");
@@ -1610,8 +1637,8 @@ void print_help( void )
 	printf("a  [account]     Add entry\n");
 	printf("s  [account]     Search (fuzzy)\n");
 	printf("se [account]     Search (exact)\n");
-	printf("u  [account]     Update Entry\n");
-	printf("d  [account]     Delete Entry\n");
+	printf("u  [account]     Update entry\n");
+	printf("d  [account]     Delete entry\n");
 	printf("l                List all entries\n");
 	printf("\n");
 	printf("p  [filename]    Print all entries to .csv file\n" );
@@ -1620,6 +1647,7 @@ void print_help( void )
 	printf("c                Change login password\n" );
 	printf("\n");
 	printf("e  [filename]    Export for sync\n" );
+	printf("em [filename]    Export for mSecure\n" );
 	printf("i  [filename]    Import and sync\n" );
 	printf("id [filename]    Import and delete\n" );
 	printf("\n");
