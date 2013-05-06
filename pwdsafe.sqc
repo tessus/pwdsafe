@@ -18,7 +18,7 @@
 #include <ctype.h>
 #include "utilemb.h"
 
-#define	RELEASE	"1.10"
+#define	RELEASE	"1.11"
 #define REVISION "$Revision$"
 
 #define MAX_ACC_LEN		64
