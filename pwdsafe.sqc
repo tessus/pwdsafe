@@ -49,1415 +49,1453 @@
 #define M_HELP			85
 #define M_DEBUG			88
 #define M_EXIT			0
-#define M_INVALID		-1	
-#define M_MAX			M_REGISTER - 1	
+#define M_INVALID		-1
+#define M_MAX			M_REGISTER - 1
 
 int DataExport(char *, char *, char *, int);
 int DataImport(char *);
 char* getstr( int len );
 void print_menu( int admin );
 void print_help( void );
-	
+
 
 EXEC SQL INCLUDE SQLCA;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 
-   EXEC SQL BEGIN DECLARE SECTION;
-           char reguser[65];
-           char regpwd[65];
-           char user[65];			// var for actual user
-           char pwd[65];			// host var for hashed pwd in pwdsafe.pwdlogin
-           short admin;				// host var, if user is admin -> allow register new users
-           short menu;				// host var for menu flag
-           short there;				// host var to check if tables are there
-           char account[65];
-           char userid[65];
-           char password[65];
-           char description[2049];
-           char haccount[65];
-		   char huserid[65];
-		   char hpassword[65];
-           char hdescription[2049];
-           char enc_pwd[65];		// pwd entered
-           char acc[65];			// host var for where clause
-           char ts[32];
-           short int tsind;			// indicator var for ts
-           short int recind[2];		// indicator var for password and description
+	EXEC SQL BEGIN DECLARE SECTION;
+		char reguser[65];
+		char regpwd[65];
+		char user[65];				// var for actual user
+		char pwd[65];				// host var for hashed pwd in pwdsafe.pwdlogin
+		short admin;				// host var, if user is admin -> allow register new users
+		short menu;					// host var for menu flag
+		short there;				// host var to check if tables are there
+		char account[65];
+		char userid[65];
+		char password[65];
+		char description[2049];
+		char haccount[65];
+		char huserid[65];
+		char hpassword[65];
+		char hdescription[2049];
+		char enc_pwd[65];			// pwd entered
+		char acc[65];				// host var for where clause
+		char ts[32];
+		short int tsind;			// indicator var for ts
+		short int recind[2];		// indicator var for password and description
 
-           char uid[129];			// connection vars
-           char passwd[19];
-           char db[19];
-   EXEC SQL END DECLARE SECTION;
+		char uid[129];				// connection vars
+		char passwd[19];
+		char db[19];
+	EXEC SQL END DECLARE SECTION;
 
 #if defined (LINUX) || defined (DARWIN)
-   struct termios initialrsettings, newrsettings;
+	struct termios initialrsettings, newrsettings;
 #endif
 
-   int maxsel, numsel = 0;			// menue var;
-   char numselh[5];					// menue help var
-   char *cmdline;					// line entered in menu
-   char cmd[5];						// command var
+	int maxsel, numsel = 0;			// menue var;
+	char numselh[5];				// menue help var
+	char *cmdline;					// line entered in menu
+	char cmd[5];					// command var
 
-   char cmdaccount[MAX_ACC_LEN+1];	// var for account, if entered in the menu
-   struct sqlca sqlca;				// sqlca structure
-   int ch, i = 0;					// vars for enc_pwd input
-   char del[5], upd[5], tmp[5];    	// delete and update var (y/n)
-   FILE *fp;						// filepointer fp
-   char filename[MAX_PATH_LEN+1];	// var for filename
-   char prompt, preview;
-   int sync = 0;
-   int rc = 0;
+	char cmdaccount[MAX_ACC_LEN+1];	// var for account, if entered in the menu
+	struct sqlca sqlca;				// sqlca structure
+	int ch, i = 0;					// vars for enc_pwd input
+	char del[5], upd[5], tmp[5];    // delete and update var (y/n)
+	FILE *fp;						// filepointer fp
+	char filename[MAX_PATH_LEN+1];	// var for filename
+	char prompt, preview;
+	int sync = 0;
+	int rc = 0;
 
-   // init connection vars
+	// init connection vars
 
-   db[0] = '\0';
-   uid[0] = '\0';
-   passwd[0] = '\0';
-   
-   if( (argc > 1) && ((strcmp( argv[1], "-v" ) == 0) || (strcmp( argv[1], "--version" ) == 0)) )
-   {
-       printf( "\nPwdSafe Application v%s (%s)\n\n", RELEASE, REVISION );
-       return 0;
-   }
+	db[0] = '\0';
+	uid[0] = '\0';
+	passwd[0] = '\0';
 
-   if( (argc > 1) && (strcmp( argv[1], "-h" ) == 0) )
-   {
-       printf( "\nUSAGE: %s database [userid passwd]\n\n", argv[0] );
-       return 1;
-   }
+	if( (argc > 1) && ((strcmp( argv[1], "-v" ) == 0) || (strcmp( argv[1], "--version" ) == 0)) )
+	{
+		printf( "\nPwdSafe Application v%s (%s)\n\n", RELEASE, REVISION );
+		return 0;
+	}
 
-   switch( argc )
-   {
-	   case 2:
-	      strcpy (db, argv[1]);
-	      EXEC SQL CONNECT TO :db;
-	      EMB_SQL_CHECK("CONNECT TO DB");
-	      break;
-	   case 4:
-	      strcpy (db, argv[1]);
-		  strcpy (uid, argv[2]);
-		  strcpy (passwd, argv[3]);
-		  EXEC SQL CONNECT TO :db USER :uid USING :passwd;
-          EMB_SQL_CHECK("CONNECT TO DB");
-          break;
-       default:
-          printf ("\nUSAGE: %s database [userid passwd]\n\n", argv[0]);
-          return 1;
-          break;
-   }
+	if( (argc > 1) && (strcmp( argv[1], "-h" ) == 0) )
+	{
+		printf( "\nUSAGE: %s database [userid passwd]\n\n", argv[0] );
+		return 1;
+	}
 
-   user[0] = '\0';
-   pwd[0] = '\0';
+	switch( argc )
+	{
+		case 2:
+			strcpy (db, argv[1]);
+			EXEC SQL CONNECT TO :db;
+			EMB_SQL_CHECK("CONNECT TO DB");
+			break;
+		case 4:
+			strcpy (db, argv[1]);
+			strcpy (uid, argv[2]);
+			strcpy (passwd, argv[3]);
+			EXEC SQL CONNECT TO :db USER :uid USING :passwd;
+			EMB_SQL_CHECK("CONNECT TO DB");
+			break;
+		default:
+			printf ("\nUSAGE: %s database [userid passwd]\n\n", argv[0]);
+			return 1;
+			break;
+	}
 
-   printf( "\nUser: ");
-   strcpy( user, getstr(MAX_UID_LEN) );
-   
-   EXEC SQL SELECT admin INTO :admin
-       FROM pwdsafe.pwdlogin
-       WHERE usr = :user;
+	user[0] = '\0';
+	pwd[0] = '\0';
 
-   if( sqlca.sqlcode == 100 )
-   {
-	   printf( "\nUser not found.\n\n" );
-	   EXEC SQL CONNECT RESET;
-       EMB_SQL_CHECK("CONNECT RESET");
-	   return 1;
-   }
-   EMB_SQL_CHECK("SELECT");
-   
-   printf( "\nPlease enter the encryption password: " );
+	printf( "\nUser: ");
+	strcpy( user, getstr(MAX_UID_LEN) );
+
+	EXEC SQL SELECT admin INTO :admin
+	    FROM pwdsafe.pwdlogin
+	    WHERE usr = :user;
+
+	if( sqlca.sqlcode == 100 )
+	{
+		printf( "\nUser not found.\n\n" );
+		EXEC SQL CONNECT RESET;
+		EMB_SQL_CHECK("CONNECT RESET");
+		return 1;
+	}
+	EMB_SQL_CHECK("SELECT");
+
+	printf( "\nPlease enter the encryption password: " );
 
 #ifdef WIN32
-   do
-      {
-         ch = _getch();
-         switch( ch )
-         {
-   		     case 8:
-   		        if( i != 0 )
-   		        {
-   		    	   i=i-1;
-   		    	   printf( "d" );
-   		    	}
-   		        break;
-   		     case 13:
-   		        break;
-   		     default:
-   		        enc_pwd[i++] = ch;
-   		        printf( "*" );
-   		        break;
-   	     }
-      } while( ch != '\r' );
+	do
+	{
+		ch = _getch();
+		switch( ch )
+		{
+			case 8:
+				if( i != 0 )
+				{
+					i=i-1;
+					printf( "d" );
+				}
+				break;
+			case 13:
+				break;
+			default:
+				enc_pwd[i++] = ch;
+				printf( "*" );
+				break;
+		}
+	}
+	while( ch != '\r' );
 
-   enc_pwd[i] = '\0';
+	enc_pwd[i] = '\0';
 #endif
 
 #if defined (LINUX) || defined (DARWIN)
-   enc_pwd[0] = '\0';
-   tcgetattr( fileno(stdin), &initialrsettings );
-   newrsettings = initialrsettings;
-   newrsettings.c_lflag &= ~ECHO;
-   tcsetattr( fileno(stdin), TCSAFLUSH, &newrsettings );
-   strcpy( enc_pwd, getstr(MAX_PWD_LEN) );
-   tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
+	enc_pwd[0] = '\0';
+	tcgetattr( fileno(stdin), &initialrsettings );
+	newrsettings = initialrsettings;
+	newrsettings.c_lflag &= ~ECHO;
+	tcsetattr( fileno(stdin), TCSAFLUSH, &newrsettings );
+	strcpy( enc_pwd, getstr(MAX_PWD_LEN) );
+	tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
 #endif
 
-   if( strlen(enc_pwd) < 6 )
-   {
-	   printf( "\n\nPassword has to be at least 6 characters long.\n\n" );
-	   EXEC SQL CONNECT RESET;
-       EMB_SQL_CHECK("CONNECT RESET");
-	   return 1;
-   }   
-
-   EXEC SQL SELECT menu INTO :menu 
-       FROM pwdsafe.pwdlogin
-       WHERE usr = :user AND pwd=encrypt(:enc_pwd,:enc_pwd);
-
-   if( sqlca.sqlcode == 100 )
-   {
-	   printf( "\n\nUser / Password do not match.\n\n" );
-	   EXEC SQL CONNECT RESET;
-       EMB_SQL_CHECK("CONNECT RESET");
-	   return 1;
-   }
-   EMB_SQL_CHECK("SELECT");
-
-   printf("\n\n");
-   printf("PwdSafe Application v%s (%s)\n",RELEASE,REVISION);
-
-   do
-      {
-      	 memset(cmd,'\0',sizeof(cmd));
-      	 memset(cmdaccount,'\0',sizeof(cmdaccount));
-      	 cmdline = NULL;
-         numsel = 0;
-         printf("\n\n");
-         if( menu )
-         {
-         	print_menu( admin );
-         }
-         
-         printf("==> ");
-
-         fflush(stdin);
-         
-         cmdline = getstr(85);
-         strncpy( cmd, cmdline, 2 );
-                  
-         maxsel = M_MAX;			// Max menue sections
-         if( admin > 0 )
-         {
-			 maxsel++;
-		 }
-         
-         if( cmd[0] == 'a' )
-         {
-         	numsel = M_ADD;
-         	cmdline+=2;
-         	strcpy( cmdaccount, cmdline);
-         }
-         else if( cmd[0] == '/' )
-         {
-         	numsel = M_SEARCH;
-         	cmdline+=1;
-         	strcpy( cmdaccount, cmdline);
-         }  
-         else if( cmd[0] == 's' )
-         {
-         	numsel = M_SEARCH;
-         	cmdline+=2;
-         	
-         	if( cmd[1] == 'e' )
-         	{
-         		numsel = M_SEARCH_EXACT;
-         		cmdline+=1;
-         	}
-
-         	strcpy( cmdaccount, cmdline);
-         }
-         else if( cmd[0] == 'u' )
-         {
-         	numsel = M_UPDATE;
-         	cmdline+=2;
-         	strcpy( cmdaccount, cmdline);
-         }
-         else if( cmd[0] == 'd' )
-         {
-         	numsel = M_DELETE;
-         	cmdline+=2;
-         	strcpy( cmdaccount, cmdline);
-         }
-         else if( cmd[0] == 'l' )
-         {
-         	numsel = M_LIST;
-         }
-         else if( cmd[0] == 'p' )
-         {
-         	numsel = M_PRINT_CSV;
-         	cmdline+=2;
-         	
-         	if( cmd[1] == 'p' )
-         	{
-         		numsel = M_PRINT_TXT;
-         		cmdline+=1;
-         	}
-
-         	strcpy( cmdaccount, cmdline);
-         }
-         else if( cmd[0] == 'c' )
-         {
-         	numsel = M_CHANGE;
-         	cmdline+=2;
-         	strcpy( cmdaccount, cmdline);
-         }
-         else if( cmd[0] == 'e' )
-         {
-         	numsel = M_EXPORT;
-         	cmdline+=2;
-         	
-         	if( cmd[1] == 'm' )
-         	{
-         		numsel = M_EXPORT_MSEC;
-         		cmdline+=1;
-         	}
-         	
-         	strcpy( cmdaccount, cmdline);
-         }
-         else if( cmd[0] == 'i' )
-         {
-         	numsel = M_IMPORT;
-         	cmdline+=2;
-         	
-         	if( cmd[1] == 'd' )
-         	{
-         		numsel = M_IMPORT_DEL;
-         		cmdline+=1;
-         	}
-
-         	strcpy( cmdaccount, cmdline);
-         }
-         else if( cmd[0] == 'r' )
-         {
-         	numsel = M_REGISTER;
-         	cmdline+=2;
-         	strcpy( cmdaccount, cmdline);
-         }
-         else if( cmd[0] == 'D' )
-         {
-         	numsel = M_DEBUG;
-         	maxsel = M_DEBUG;
-         }
-         else if( cmd[0] == 'm' )
-         {
-         	numsel = M_MENU;
-         	maxsel = M_MENU;
-         	cmdline+=2;
-         	strcpy( cmdaccount, cmdline);
-         	
-         	if( cmd[1] == '1' || cmdaccount[0] == '1' )
-         	{
-         		numsel = M_MENU_ON;
-         		maxsel = M_MENU_ON;
-         	}
-         	if( cmd[1] == '0' || cmdaccount[0] == '0' )
-         	{
-         		numsel = M_MENU_OFF;
-         		maxsel = M_MENU_OFF;
-         	}         	         	
-         }
-         else if( cmd[0] == 'h' )
-         {
-         	numsel = M_HELP;
-         	maxsel = M_HELP;
-         }
-         else if( cmd[0] == 'x' )
-         {
-         	numsel = M_EXIT;
-         }
-         else
-         {
-         	cmdline[0]='\0';
-         	numsel = atoi( cmd );
-         
-         	if( numsel == 0 )
-            	numsel = M_INVALID;
-         }
-                  	 
-         if (numsel < 0 || numsel > maxsel)
-            printf("\nInvalid selection. Please try again.\n");
-         else
-            if (numsel != M_EXIT)
-            {
-                switch (numsel)
-				   {
-				      // Search (exact)
-				      case M_SEARCH_EXACT:
-				          if( strlen(cmdline) == 0 )
-					      {
-					      	printf( "\nWhich account: " );
-					        acc[0] = '\0';
-					        fflush(stdin);
-
-					        strcpy( acc, getstr(MAX_ACC_LEN) );
-
-						    if( strlen( acc ) == 0 )
-						    	break;
-					      } 
-					      else
-					      {
-					      	strcpy(acc,cmdline);
-					      }
-
-						  account[0] = '\0';
-						  userid[0] = '\0';
-						  password[0] = '\0';
-						  description[0] = '\0';
-
-						  EXEC SQL SELECT account, userid, decrypt_char(password, :enc_pwd), description INTO :account, :userid, :password, :description
-						              FROM pwdsafe.pwdlist
-						              WHERE account = :acc AND usr = :user;
-
-						  switch( sqlca.sqlcode )
-						  {
-							  case 0:
-							   		printf( "\nAccount    : %s", account );
-						  			printf( "\nUserid     : %s", userid );
-						  			printf( "\nPassword   : %s", password );
-   						 			printf( "\nDescription: %s", description );
-   						 			break;
-   						 	  case 100:
-   						 	  		printf( "\nAccount not found." );
-   						 	  		break;
-   						 	  case -20144:
-   						 	  case -20145:
-   						 	  		printf( "\nWrong decryption password.");
-   						 			EXEC SQL ROLLBACK;
-   						 			return 1;
-   						 			break;
-   						 	  default:
-   						 	  		EMB_SQL_CHECK("SELECT statement");
-   						 	  		break;
-						  }
-
-   						  break;
-
-
-					  // Search (fuzzy)
-					  case M_SEARCH:
-					      if( strlen(cmdline) == 0 )
-					      {
-					      	printf( "\nWhich account: " );
-					        acc[0] = '\0';
-					        fflush(stdin);
-
-					        strcpy( acc, getstr(MAX_ACC_LEN) );
-
-						    if( strlen( acc ) == 0 )
-						    	break;
-					      } 
-					      else
-					      {
-					      	strcpy(acc,cmdline);
-					      }
-
-						  account[0] = '\0';
-						  userid[0] = '\0';
-						  password[0] = '\0';
-						  description[0] = '\0';
-
-
-						  EXEC SQL DECLARE c2 CURSOR FOR
-					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
-						              FROM pwdsafe.pwdlist
-						          WHERE usr = :user AND ucase(account) LIKE ucase('%' concat :acc concat '%')
-						          ORDER BY account;
-
-						  EXEC SQL OPEN c2;
-					      EMB_SQL_CHECK("OPEN CURSOR");
-
-					      i=0;
-
-					      do {
-					         EXEC SQL FETCH c2 INTO :account, :userid, :password, :description;
-
-					         if (SQLCODE != 0) break;
-
-					         printf( "\nAccount    : %s", account );
-							 printf( "\nUserid     : %s", userid );
-							 printf( "\nPassword   : %s", password );
-   						 	 printf( "\nDescription: %s", description );
-   						 	 printf( "\n" );
-   						 	 i++;
-					      } while ( 1 );
-
-
-					      switch( sqlca.sqlcode )
-						  {
-						   	  case -20144:
-						   	  case -20145:
-						   	  		printf( "\nWrong decryption password.");
-						   			EXEC SQL ROLLBACK;
-						   			return 1;
-						   			break;
-						   	  case 100:
-							     	if( i == 0 )
-							     	    printf( "\nAccount not found." );
-   						 	  		break;
-						   	  default:
-						   	  		break;
-						  }
-
-					      EXEC SQL CLOSE c2;
-                          EMB_SQL_CHECK("CLOSE CURSOR");
-
-                          break;
-
-   					  // List all entries
-   					  case M_LIST:
-   					      EXEC SQL DECLARE c1 CURSOR FOR
-					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
-						              FROM pwdsafe.pwdlist
-						          WHERE usr = :user
-						          ORDER BY account;
-
-						  EXEC SQL OPEN c1;
-					      EMB_SQL_CHECK("OPEN CURSOR");
-
-					      do {
-					         EXEC SQL FETCH c1 INTO :account, :userid, :password, :description;
-
-					         if (SQLCODE != 0) break;
-
-					         printf( "\nAccount    : %s", account );
-							 printf( "\nUserid     : %s", userid );
-							 printf( "\nPassword   : %s", password );
-   						 	 printf( "\nDescription: %s", description );
-   						 	 printf( "\n" );
-					      } while ( 1 );
-
-
-					      switch( sqlca.sqlcode )
-						  {
-						   	  case -20144:
-						   	  case -20145:
-						   	  		printf( "\nWrong decryption password.");
-						   			EXEC SQL ROLLBACK;
-						   			return 1;
-						   			break;
-						   	  default:
-						   	  		break;
-						  }
-
-					      EXEC SQL CLOSE c1;
-                          EMB_SQL_CHECK("CLOSE CURSOR");
-
-                          break;
-
-				      // Add entry
-				      case M_ADD:
-				          account[0] = '\0';
-						  userid[0] = '\0';
-						  password[0] = '\0';
-						  description[0] = '\0';
-						  fflush(stdin);
-
-						  if( strlen(cmdline) == 0 )
-					      {
-					      	printf( "\nAccount    : " );
-					        account[0] = '\0';
-					        fflush(stdin);
-
-					        strcpy( account, getstr(MAX_ACC_LEN) );
-
-						    if( strlen( account ) == 0 )
-						    	break;
-					      } 
-					      else
-					      {
-					      	printf( "\n" );
-					      	strcpy(account,cmdline);
-					      }
-
-						  printf( "Userid     : " ); strcpy( userid, getstr(MAX_UID_LEN) );
-						  printf( "Password   : " ); strcpy( password, getstr(MAX_PWD_LEN) );
-   						  printf( "Description: " ); strcpy( description, getstr(MAX_DESC_LEN) );
-
-   						  // read description as sentence
-
-   						  EXEC SQL INSERT INTO pwdsafe.pwdlist (account,userid,password,description,usr,ts) values
-   						      (:account, :userid, encrypt(:password, :enc_pwd), :description, :user, current timestamp);
-
-   						  // -803 duplicate rows - constraint violation
-
-   						  if( sqlca.sqlcode == -803 )
-						  {
-						  	  printf( "\nAccount already exists.\n" );
-						  	  EXEC SQL ROLLBACK;
-						  	  break;
-						  }
-						  else {
-						  	  EMB_SQL_CHECK("INSERT");
-						  	  EXEC SQL COMMIT;
-						  }
-
-				          break;
-
-				      // Update Entry
-				      case M_UPDATE:
-				          if( strlen(cmdline) == 0 )
-					      {
-					      	printf( "\nWhich account: " );
-					        acc[0] = '\0';
-					        fflush(stdin);
-
-					        strcpy( acc, getstr(MAX_ACC_LEN) );
-
-						    if( strlen( acc ) == 0 )
-						    	break;
-					      } 
-					      else
-					      {
-					      	strcpy(acc,cmdline);
-					      }
-
-
-						  EXEC SQL DECLARE c5 CURSOR FOR
-					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
-						             FROM pwdsafe.pwdlist
-						          WHERE usr = :user AND ucase(account) LIKE ucase('%' concat :acc concat '%')
-						          ORDER BY account
-						          FOR UPDATE;
-
-						  EXEC SQL OPEN c5;
-						  EMB_SQL_CHECK("OPEN CURSOR");
-
-                          i=0;
-
-						  do {
-						      account[0] = '\0';
-							  userid[0] = '\0';
-							  password[0] = '\0';
-						      description[0] = '\0';
-
-						      haccount[0] = '\0';
-							  huserid[0] = '\0';
-							  hpassword[0] = '\0';
-							  hdescription[0] = '\0';
-
-							  fflush(stdin);
-
-						      EXEC SQL FETCH c5 INTO :account, :userid, :password, :description;
-						      if (SQLCODE != 0) break;
-
-						      do {
-							  printf( "\n1. Account    : %s", account );
-							  printf( "\n2. Userid     : %s", userid );
-							  printf( "\n3. Password   : %s", password );
-							  printf( "\n4. Description: %s", description );
-   						 	  printf( "\n" );
-
-						      printf( "\n Update? (1/2/3/4/N) Main Menue (q)" );
-
-						      upd[0] = '\0';
-
-						      fflush(stdin);
-						      strcpy( upd, getstr(5) );
-
-						      switch( upd[0] )
-						      {
-								  case '1':
-								     printf( "\nAccount: " ); strcpy( haccount, getstr(MAX_ACC_LEN) );
-
-								     EXEC SQL UPDATE pwdsafe.pwdlist SET account = :haccount, ts = current timestamp
-									          WHERE CURRENT OF c5;
-
-									 if( sqlca.sqlcode == -803 )
-									 {
-										 printf( "\nAccount already exists.\n" );
-									 } else {
-										 strcpy( account, haccount );
-									 }
-									 break;
-								  case '2':
-								     printf( "\nUserid: " ); strcpy( huserid, getstr(MAX_UID_LEN) );
-
-								     EXEC SQL UPDATE pwdsafe.pwdlist SET userid = :huserid, ts = current timestamp
-									          WHERE CURRENT OF c5;
-         							 EMB_SQL_CHECK("UPDATE");
-
-								     strcpy( userid, huserid );
-								     break;
-								  case '3':
-								     printf( "\nPassword: " ); strcpy( hpassword, getstr(MAX_PWD_LEN) );
-
-								     EXEC SQL UPDATE pwdsafe.pwdlist SET password = encrypt(:hpassword, :enc_pwd), ts = current timestamp
-									          WHERE CURRENT OF c5;
-         							 EMB_SQL_CHECK("UPDATE");
-
-								     strcpy( password, hpassword );
-								     break;
-								  case '4':
-								     printf( "\nDescription: " ); strcpy( hdescription, getstr(MAX_DESC_LEN) );
-
-								     EXEC SQL UPDATE pwdsafe.pwdlist SET description = :hdescription, ts = current timestamp
-									          WHERE CURRENT OF c5;
-         							 EMB_SQL_CHECK("UPDATE");
-
-								     strcpy( description, hdescription );
-								     break;
-								  case 'q':
-								     goto eloop_upd;
-								     break;
-								  default:
-								     upd[0] = 'n';
-								     break;
-							  }
-						      } while ( upd[0] != 'n' );
-							  i++;
-
-						  } while ( 1 );
-
-                          switch( sqlca.sqlcode )
-						  {
-						   	  case -20144:
-						   	  case -20145:
-						   	     printf( "\nWrong decryption password.");
-						  		 EXEC SQL ROLLBACK;
-						     	 return 1;
-						  		 break;
-						  	  case -803:
-						  	     printf( "\nAccount already exists.\n" );
-								 EXEC SQL ROLLBACK;
-								 break;
-						  	  case 100:
-						       	 if( i == 0 )
-						       	    printf( "\nAccount not found." );
-						   		 break;
-						   	  default:
-						   		 break;
-						  }
-
-						  eloop_upd:
-
-						  EXEC SQL CLOSE c5;
-						  EMB_SQL_CHECK("CLOSE CURSOR");
-
-						  EXEC SQL COMMIT;
-						  EMB_SQL_CHECK("COMMIT");
-
-				          break;
-
-				      // Delete Entry
-				      case M_DELETE:
-				          if( strlen(cmdline) == 0 )
-					      {
-					      	printf( "\nWhich account: " );
-					        acc[0] = '\0';
-					        fflush(stdin);
-
-					        strcpy( acc, getstr(MAX_ACC_LEN) );
-
-						    if( strlen( acc ) == 0 )
-						    	break;
-					      } 
-					      else
-					      {
-					      	strcpy(acc,cmdline);
-					      }
-
-						  EXEC SQL DECLARE c4 CURSOR FOR
-					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
-						             FROM pwdsafe.pwdlist
-						          WHERE usr = :user AND ucase(account) LIKE ucase('%' concat :acc concat '%')
-						          ORDER BY account
-						          FOR UPDATE;
-
-						  EXEC SQL OPEN c4;
-						  EMB_SQL_CHECK("OPEN CURSOR");
-
-                          i=0;
-
-						  do {
-						      account[0] = '\0';
-							  userid[0] = '\0';
-							  password[0] = '\0';
-						      description[0] = '\0';
-
-						      EXEC SQL FETCH c4 INTO :account, :userid, :password, :description;
-						      if (SQLCODE != 0) break;
-
-						      printf( "\nAccount    : %s", account );
-							  printf( "\nUserid     : %s", userid );
-							  printf( "\nPassword   : %s", password );
-							  printf( "\nDescription: %s", description );
-   						 	  printf( "\n" );
-
-						      printf( "\n Delete? (y/N) Main Menue (q)" );
-
-						      del[0] = '\0';
-
-						      fflush(stdin);
-						      strcpy( del, getstr(5) );
-
-						      switch( del[0] )
-						      {
-								  case 'y':
-								     EXEC SQL DELETE FROM pwdsafe.pwdlist WHERE CURRENT OF c4;
-						             EMB_SQL_CHECK("DELETE");
-								     break;
-								  case 'q':
-								     goto eloop_del;
-								     break;
-								  default:
-								     break;
-							  }
-							  i++;
-
-						  } while ( 1 );
-
-                          switch( sqlca.sqlcode )
-						  {
-						   	  case -20144:
-						   	  case -20145:
-						   	     printf( "\nWrong decryption password.");
-						  		 EXEC SQL ROLLBACK;
-						     	 return 1;
-						  		 break;
-						  	  case 100:
-						       	 if( i == 0 )
-						       	    printf( "\nAccount not found." );
-						   		 break;
-						   	  default:
-						   		 break;
-						  }
-
-						  eloop_del:
-
-						  EXEC SQL CLOSE c4;
-						  EMB_SQL_CHECK("CLOSE CURSOR");
-
-						  EXEC SQL COMMIT;
-						  EMB_SQL_CHECK("COMMIT");
-
-				          break;
-
-				      // Register new user
-				      case M_REGISTER:
-					  	  reguser[0] = '\0';
-					  	  regpwd[0] = '\0';
-					  	  
-					  	  if( strlen(cmdline) == 0 )
-					      {
-					      	printf( "\nUser    : " );
-					        reguser[0] = '\0';
-					        fflush(stdin);
-
-					        strcpy( reguser, getstr(MAX_UID_LEN) );
-
-						    if( strlen( reguser ) == 0 )
-						    	break;
-					      } 
-					      else
-					      {
-					      	strcpy(reguser,cmdline);
-					      	printf("\n");
-					      }
-
-					  	  printf( "Password: " ); strcpy( regpwd, getstr(MAX_PWD_LEN) );
-
-					  	  if( strlen( regpwd ) == 0 )
-					  	  {
-					  	  		printf( "\n\nUser NOT registered.\n" );
-						    	break;
-					  	  }
-					  	  
-					  	  if(strlen(regpwd) < 6)
-					  	  {
-							  printf( "\n\nPassword has to be at least 6 bytes.\n" );
-							  break;
-						  }
-
-					      EXEC SQL INSERT INTO pwdsafe.pwdlogin (usr,pwd) values
-				               (:reguser, encrypt(:regpwd,:regpwd));
-
-					      // -803 duplicate rows - constraint violation
-
-					      if( sqlca.sqlcode == -803 )
-					      {
-							  printf( "\nUser already exists.\n" );
-							  EXEC SQL ROLLBACK;
-							  break;
-						  }
-						  else {
-							  EMB_SQL_CHECK("INSERT");
-							  EXEC SQL COMMIT;
-							  printf( "\n\nUser registered.\n" );
-						  }
-
-   						  break;
-
-                      // print to csv file
-                      case M_PRINT_CSV:
-                          if( strlen(cmdline) == 0 )
-					      {
-					      	printf( "\nEnter [path]filename: " );
-					        filename[0] = '\0';
-					        fflush(stdin);
-
-					        strcpy( filename, getstr(MAX_PATH_LEN) );
-
-						    if( strlen( filename ) == 0 )
-						    	break; //fp = fopen( "pwdfile.csv", "w" );
-					      } 
-					      else
-					      {
-					      	strcpy(filename,cmdline);
-					      }
-					      
-					      fp = fopen( filename, "w" );
-
-                          if( fp == NULL )
-                          {
-							  printf( "\n\n Error: Cannot write to file %s\n", filename );
-							  break;
-						  }
-
-                          EXEC SQL DECLARE c6 CURSOR FOR
-					              SELECT account, userid, decrypt_char(password, :enc_pwd), description, ts
-						              FROM pwdsafe.pwdlist
-						          WHERE usr = :user
-						          ORDER BY account;
-
-						  EXEC SQL OPEN c6;
-					      EMB_SQL_CHECK("OPEN CURSOR");
-
-					      do {
-					         EXEC SQL FETCH c6 INTO :account, :userid, :password, :description, :ts INDICATOR :tsind;
-
-					         if (SQLCODE != 0) break;
-
-					         fprintf( fp, "\"%s\",", account );
-							 fprintf( fp, "\"%s\",", userid );
-							 fprintf( fp, "\"%s\",", password );
-   						 	 fprintf( fp, "\"%s\"", description );
-   						 	 if( tsind >= 0 )
-   						 	    fprintf( fp, ",\"%s\"", ts );
-   						 	 fprintf( fp, "\n" );
-					      } while ( 1 );
-
-
-					      switch( sqlca.sqlcode )
-						  {
-						   	  case -20144:
-						   	  case -20145:
-						   	  		printf( "\nWrong decryption password.");
-						   			EXEC SQL ROLLBACK;
-						   			return 1;
-						   			break;
-						   	  default:
-						   	  		break;
-						  }
-
-					      EXEC SQL CLOSE c6;
-                          EMB_SQL_CHECK("CLOSE CURSOR");
-
-					      fclose( fp );
-
-                          break;
-
-                      // print to file
-                      case M_PRINT_TXT:
-                          if( strlen(cmdline) == 0 )
-					      {
-					      	printf( "\nEnter [path]filename: " );
-					        filename[0] = '\0';
-					        fflush(stdin);
-
-					        strcpy( filename, getstr(MAX_PATH_LEN) );
-
-						    if( strlen( filename ) == 0 )
-						    	break; //fp = fopen( "pwdfile.csv", "w" );
-					      } 
-					      else
-					      {
-					      	strcpy(filename,cmdline);
-					      }
-					      
-					      fp = fopen( filename, "w" );
-
-                          if( fp == NULL )
-                          {
-							  printf( "\n\n Error: Cannot write to file %s\n", filename );
-							  break;
-						  }
-
-                          EXEC SQL DECLARE c7 CURSOR FOR
-					              SELECT account, userid, decrypt_char(password, :enc_pwd), description
-						              FROM pwdsafe.pwdlist
-						          WHERE usr = :user
-						          ORDER BY account;
-
-						  EXEC SQL OPEN c7;
-					      EMB_SQL_CHECK("OPEN CURSOR");
-
-					      do {
-					         EXEC SQL FETCH c7 INTO :account, :userid, :password, :description;
-
-					         if (SQLCODE != 0) break;
-
-					         fprintf( fp, "\nAccount    : %s", account );
-							 fprintf( fp, "\nUserid     : %s", userid );
-							 fprintf( fp, "\nPassword   : %s", password );
-   						 	 fprintf( fp, "\nDescription: %s", description );
-   						 	 fprintf( fp, "\n" );
-					      } while ( 1 );
-
-
-					      switch( sqlca.sqlcode )
-						  {
-						   	  case -20144:
-						   	  case -20145:
-						   	  		printf( "\nWrong decryption password.");
-						   			EXEC SQL ROLLBACK;
-						   			return 1;
-						   			break;
-						   	  default:
-						   	  		break;
-						  }
-
-					      EXEC SQL CLOSE c7;
-                          EMB_SQL_CHECK("CLOSE CURSOR");
-
-					      fclose( fp );
-
-                          break;
-
-					  // Change login password
-				      case M_CHANGE:
-					  	  regpwd[0] = '\0';
-
-					      printf( "\nNew password: " ); strcpy( regpwd, getstr(MAX_PWD_LEN) );
-					      
-					      if( strlen( regpwd ) == 0 )
-					  	  {
-					  	  		printf( "\n\nPassword NOT changed.\n" );
-						    	break;
-					  	  }
-					  	  
-					  	  if(strlen(regpwd) < 6)
-					  	  {
-							  printf( "\n\nPassword has to be at least 6 bytes.\n" );
-							  break;
-						  }
-
-					      EXEC SQL BEGIN COMPOUND ATOMIC STATIC
-					         UPDATE pwdsafe.pwdlist
-					            SET password = encrypt( decrypt_char( password, :enc_pwd ), :regpwd )
-					         WHERE usr = :user;
-
-					         UPDATE pwdsafe.pwdlogin
-					            SET pwd = encrypt(:regpwd,:regpwd)
-					         WHERE usr = :user;
-
-						     COMMIT ;
-						  END COMPOUND ;
-
-					      if( sqlca.sqlcode == 0 )
-					      {
-					      	  printf( "\n\nPassword changed.\n" );
-							  enc_pwd[0] = '\0';
-							  strcpy( enc_pwd, regpwd );
-						  }
-						  else
-						  {
-						      printf( "\n\nPassword NOT changed.\n" );
-						  }
-
-					      break;
-
-					  // Export for sync
-					  // Export for mSecure
-					  case M_EXPORT:
-					  case M_EXPORT_MSEC:
-					      if( strlen(cmdline) == 0 )
-					      {
-					      	printf( "\nEnter [path]filename: " );
-					        filename[0] = '\0';
-					        fflush(stdin);
-
-					        strcpy( filename, getstr(MAX_PATH_LEN) );
-
-						    if( strlen( filename ) == 0 )
-						    	break; 					      
-						  } 
-					      else
-					      {
-					      	strcpy(filename,cmdline);
-					      }
-					      
-                          rc = DataExport( filename, user, enc_pwd, numsel );
-
-                          if( rc != 0 )
-                             printf( "\n\n Error: export to file %s\n", filename );
-
-						  break;
-
-					  // 11 - Import and sync
-					  // 12 - Import and delete accounts that are not in imported table
-					  case M_IMPORT:
-					  case M_IMPORT_DEL:
-						  if( strlen(cmdline) == 0 )
-					      {
-					      	printf( "\nEnter [path]filename: " );
-					        filename[0] = '\0';
-					        fflush(stdin);
-
-					        strcpy( filename, getstr(MAX_PATH_LEN) );
-
-						    if( strlen( filename ) == 0 )
-						    	break; 					      
-						  } 
-					      else
-					      {
-					      	strcpy(filename,cmdline);
-					      }
-
-					      EXEC SQL CREATE TABLE "PWDSAFE"."TPWDLIST" LIKE "PWDSAFE"."PWDLIST";
-
-					      if( sqlca.sqlcode == -601 )
-					      {
-							  EXEC SQL DELETE FROM "PWDSAFE"."TPWDLIST";
-							  EXEC SQL COMMIT;
-						  }
-
-						  EXEC SQL GRANT CONTROL ON TABLE pwdsafe.tpwdlist TO PUBLIC;
-						  rc = DataImport( filename );
-
-						  if( rc != 0 )
-						  {
-							  printf( "\n\n Error: import from file %s\n", filename );
-							  break;
-						  }
-						  
-						  EXEC SQL COMMIT;
-
-						  EXEC SQL DECLARE u1 CURSOR FOR
-						          SELECT l.account, l.userid, decrypt_char(l.password, :enc_pwd), l.description,
-						                 t.account, t.userid, decrypt_char(t.password, :enc_pwd), t.description
-						          FROM pwdsafe.pwdlist l, pwdsafe.tpwdlist t
-								  WHERE l.account = t.account AND l.usr = t.usr AND
-								  l.usr = :user AND
-								  (
-								  l.ts < t.ts OR
-								  l.ts IS NULL
-								  ) AND
-								  (
-								  l.userid != t.userid OR
-								  decrypt_char(l.password, :enc_pwd) != decrypt_char(t.password, :enc_pwd) OR
-								  l.description != t.description
-								  )
-								  ORDER BY l.account;
-
-						  EXEC SQL DECLARE u2 CURSOR FOR
-						          SELECT t.account, t.userid, decrypt_char(t.password, :enc_pwd), t.description
-						          FROM pwdsafe.tpwdlist t
-						          WHERE t.usr = :user AND t.account
-								  NOT IN (SELECT account FROM pwdsafe.pwdlist l WHERE l.usr = t.usr)
-								  ORDER BY t.account;
-
-						  EXEC SQL DECLARE u3 CURSOR FOR
-						          SELECT t.account, t.userid, decrypt_char(t.password, :enc_pwd), t.description
-						          FROM pwdsafe.pwdlist t
-						          WHERE t.usr = :user AND t.account
-								  NOT IN (SELECT account FROM pwdsafe.tpwdlist l WHERE l.usr = t.usr)
-								  ORDER BY t.account
-								  FOR UPDATE;
-
-						  printf( "\n Preview? (y/N)" );
-
-						  tmp[0] = '\0';
-						  fflush(stdin);
-						  strcpy( tmp, getstr(5) );
-						  preview = tmp[0];
-						  prompt = 'n';
-
-						  if( preview != 'y' )
-						  {
-							  printf( "\n Prompt? (Y/n)" );
-							  tmp[0] = '\0';
-							  fflush(stdin);
-							  strcpy( tmp, getstr(5) );
-							  prompt = tmp[0];
-						  }
-
-						  if( preview != 'y' )
-						     preview = 'n';
-
-						  if( prompt != 'n' )
-						     prompt = 'y';
-
-						  if( numsel == M_IMPORT )
-						  {
-						  EXEC SQL OPEN u1;
-						  EMB_SQL_CHECK("OPEN CURSOR u1");
-
-						  do {
-							  account[0] = '\0';
-							  userid[0] = '\0';
-							  password[0] = '\0';
-							  description[0] = '\0';
-
-							  haccount[0] = '\0';
-							  huserid[0] = '\0';
-							  hpassword[0] = '\0';
-							  hdescription[0] = '\0';
-
-							  EXEC SQL FETCH u1 INTO :account, :userid, :password, :description, :haccount, :huserid, :hpassword, :hdescription;
-							  if (SQLCODE != 0) break;
-
-						      printf( "\n------------------------------------" );
-						      printf( "\nAccount    : %s", account );
-							  printf( "\nUserid     : %s", userid );
-							  printf( "\nPassword   : %s", password );
-							  printf( "\nDescription: %s", description );
-   						 	  printf( "\n  CHANGING TO" );
-
-						      printf( "\nAccount    : %s", haccount );
-							  printf( "\nUserid     : %s", huserid );
-							  printf( "\nPassword   : %s", hpassword );
-							  printf( "\nDescription: %s", hdescription );
-   						 	  printf( "\n------------------------------------" );
-
-   						 	  if( preview != 'y' )
-   						 	     sync = 1;
-
-   						 	  if( prompt == 'y' )
-   						 	  {
-								  printf( "\n Sync? (y/N) Main Menue (q)" );
-
-								  upd[0] = '\0';
-								  fflush(stdin);
-								  strcpy( upd, getstr(5) );
-
-								  if( upd[0] == 'q' )
-								     goto eloop_sync;
-
-								  if( upd[0] != 'y' )
-								     sync = 0;
-							  }
-
-							  if( sync )
-							  {
-								  EXEC SQL UPDATE pwdsafe.pwdlist SET (userid, password, description, ts) =
-								  (:huserid, encrypt(:hpassword, :enc_pwd), :hdescription, current timestamp)
-								  WHERE account = :account AND usr = :user;
-
-								  EMB_SQL_CHECK("UPDATE - SYNC");
-								  //printf( "\nDEBUG: synced.\n" );
-								  printf( "\nDone.\n" );
-							  }
-
-						  } while( 1 );
-
-						  eloop_sync:
-
-						  EXEC SQL CLOSE u1;
-						  EMB_SQL_CHECK("CLOSE CURSOR u1");
-
-						  if( upd[0] == 'q' )
-						     goto eloop_sync4;
-
-						  EXEC SQL OPEN u2;
-						  EMB_SQL_CHECK("OPEN CURSOR u2");
-
-						  do {
-							  account[0] = '\0';
-							  userid[0] = '\0';
-							  password[0] = '\0';
-							  description[0] = '\0';
-
-							  EXEC SQL FETCH u2 INTO :account, :userid, :password, :description INDICATOR :recind;
-							  if (SQLCODE != 0) break;
-
-						      printf( "\n------------------------------------" );
-						      printf( "\nAccount    : %s", account );
-							  printf( "\nUserid     : %s", userid );
-							  printf( "\nPassword   : %s", password );
-							  printf( "\nDescription: %s", description );
-   						 	  printf( "\n  ADD" );
-   						 	  printf( "\n------------------------------------" );
-
-   						 	  if( preview != 'y' )
-   						 	     sync = 1;
-
-   						 	  if( prompt == 'y' )
-   						 	  {
-								  printf( "\n Add? (y/N) Main Menue (q)" );
-
-								  upd[0] = '\0';
-								  fflush(stdin);
-								  strcpy( upd, getstr(5) );
-
-								  if( upd[0] == 'q' )
-								     goto eloop_sync2;
-
-								  if( upd[0] != 'y' )
-								     sync = 0;
-							  }
-
-							  if( sync )
-							  {
-								  EXEC SQL INSERT INTO pwdsafe.pwdlist (account,userid,password,description,usr,ts) values
-								  (:account, :userid, encrypt(:password, :enc_pwd), :description, :user, current timestamp);
-
-								  EMB_SQL_CHECK("INSERT - SYNC");
-								  //printf( "\nDEBUG: added.\n" );
-								  printf( "\nDone.\n" );
-							  }
-
-						  } while( 1 );
-
-						  eloop_sync2:
-
-						  EXEC SQL CLOSE u2;
-						  EMB_SQL_CHECK("CLOSE CURSOR u2");
-
-						  if( upd[0] == 'q' )
-						     goto eloop_sync4;
-					      }
-
-					      if( numsel == M_IMPORT_DEL )
-					      {
-						  EXEC SQL OPEN u3;
-						  EMB_SQL_CHECK("OPEN CURSOR u3");
-
-						  do {
-							  account[0] = '\0';
-							  userid[0] = '\0';
-							  password[0] = '\0';
-							  description[0] = '\0';
-
-							  EXEC SQL FETCH u3 INTO :account, :userid, :password, :description INDICATOR :recind;
-							  if (SQLCODE != 0) break;
-
-						      printf( "\n------------------------------------" );
-						      printf( "\nAccount    : %s", account );
-							  printf( "\nUserid     : %s", userid );
-							  printf( "\nPassword   : %s", password );
-							  printf( "\nDescription: %s", description );
-   						 	  printf( "\n  DELETE" );
-   						 	  printf( "\n------------------------------------" );
-
-   						 	  if( preview != 'y' )
-   						 	     sync = 1;
-
-   						 	  if( prompt == 'y' )
-   						 	  {
-								  printf( "\n Delete? (y/N) Main Menue (q)" );
-
-								  upd[0] = '\0';
-								  fflush(stdin);
-								  strcpy( upd, getstr(5) );
-
-								  if( upd[0] == 'q' )
-								     goto eloop_sync3;
-
-								  if( upd[0] != 'y' )
-								     sync = 0;
-							  }
-
-							  if( sync )
-							  {
-								  EXEC SQL DELETE FROM pwdsafe.pwdlist WHERE CURRENT OF u3;
-
-								  EMB_SQL_CHECK("DELETE - SYNC");
-								  //printf( "\nDEBUG: deleted.\n" );
-								  printf( "\nDone.\n" );
-							  }
-
-						  } while( 1 );
-
-						  eloop_sync3:
-
-						  EXEC SQL CLOSE u3;
-						  EMB_SQL_CHECK("CLOSE CURSOR u3");
-					      }
-
-						  eloop_sync4:
-
-						  EXEC SQL COMMIT;
-
-						  EXEC SQL DROP TABLE "PWDSAFE"."TPWDLIST";
-						  
-						  EXEC SQL COMMIT;
-
-						  break;
-						  
-					  // get Debug info
-					  case M_DEBUG:
-					      if( strlen(uid) == 0 )
-					      {
-					      	huserid[0] = '\0';
-					      	EXEC SQL SELECT current user INTO :huserid FROM sysibm.sysdummy1;
-					      	strcpy( uid, huserid );
-					      }	
-					      printf("\nPwdSafe Application v%s (%s)\n",RELEASE,REVISION);
-					      printf("\nDatabase     : %s", db );
-					      printf("\nDatabase User: %s\n", uid );
-					      printf("\nPwdSafe User : %s\n", user );
-					      break;	
-					      
-					  // print menu
-					  case M_MENU:
-					      if( menu != 1 )
-					      {
-					      	printf("\n");
-					        print_menu(admin);
-					      }
-					      break;	
-					      
-					  // turn menu on
-					  case M_MENU_ON:
-					      EXEC SQL UPDATE pwdsafe.pwdlogin SET menu = 1 WHERE usr = :user;
-					      EMB_SQL_CHECK("UPDATE MENU ON");
-					      EXEC SQL COMMIT;
-					      menu = 1;
-					      break;	
-					  
-					  // turn menu off
-					  case M_MENU_OFF:
-					      EXEC SQL UPDATE pwdsafe.pwdlogin SET menu = 0 WHERE usr = :user;
-					      EMB_SQL_CHECK("UPDATE MENU OFF");
-					      EXEC SQL COMMIT;
-					      menu = 0;
-					      break;	 
-					      
-					  // show help
-					  case M_HELP:
-					      print_help();
-					      break;     
-
-				      default:
-				          printf("\nError in Reset... should not happen... exiting...\n");
-				          exit(99);
-				          break;
-                   }  /* switch numsel */
-
-            } /* if */
-
-   } while (numsel != M_EXIT);
-
-   memset(enc_pwd,'\0',sizeof(enc_pwd));
-
-   EXEC SQL CONNECT RESET;
-   EMB_SQL_CHECK("CONNECT RESET");
-   return 0;
+	if( strlen(enc_pwd) < 6 )
+	{
+		printf( "\n\nPassword has to be at least 6 characters long.\n\n" );
+		EXEC SQL CONNECT RESET;
+		EMB_SQL_CHECK("CONNECT RESET");
+		return 1;
+	}
+
+	EXEC SQL SELECT menu INTO :menu
+	    FROM pwdsafe.pwdlogin
+	    WHERE usr = :user AND pwd=encrypt(:enc_pwd,:enc_pwd);
+
+	if( sqlca.sqlcode == 100 )
+	{
+		printf( "\n\nUser / Password do not match.\n\n" );
+		EXEC SQL CONNECT RESET;
+		EMB_SQL_CHECK("CONNECT RESET");
+		return 1;
+	}
+	EMB_SQL_CHECK("SELECT");
+
+	printf("\n\n");
+	printf("PwdSafe Application v%s (%s)\n",RELEASE,REVISION);
+
+	do
+	{
+		memset(cmd,'\0',sizeof(cmd));
+		memset(cmdaccount,'\0',sizeof(cmdaccount));
+		cmdline = NULL;
+		numsel = 0;
+		printf("\n\n");
+		if( menu )
+		{
+			print_menu( admin );
+		}
+
+		printf("==> ");
+
+		fflush(stdin);
+
+		cmdline = getstr(85);
+		strncpy( cmd, cmdline, 2 );
+
+		maxsel = M_MAX;			// Max menue sections
+		if( admin > 0 )
+		{
+			maxsel++;
+		}
+
+		if( cmd[0] == 'a' )
+		{
+			numsel = M_ADD;
+			cmdline+=2;
+			strcpy( cmdaccount, cmdline);
+		}
+		else if( cmd[0] == '/' )
+		{
+			numsel = M_SEARCH;
+			cmdline+=1;
+			strcpy( cmdaccount, cmdline);
+		}
+		else if( cmd[0] == '.' )
+		{
+			numsel = M_SEARCH_EXACT;
+			cmdline+=1;
+			strcpy( cmdaccount, cmdline);
+		}
+		else if( cmd[0] == 's' )
+		{
+			numsel = M_SEARCH;
+			cmdline+=2;
+
+			if( cmd[1] == 'e' )
+			{
+				numsel = M_SEARCH_EXACT;
+				cmdline+=1;
+			}
+
+			strcpy( cmdaccount, cmdline);
+		}
+		else if( cmd[0] == 'u' )
+		{
+			numsel = M_UPDATE;
+			cmdline+=2;
+			strcpy( cmdaccount, cmdline);
+		}
+		else if( cmd[0] == 'd' )
+		{
+			numsel = M_DELETE;
+			cmdline+=2;
+			strcpy( cmdaccount, cmdline);
+		}
+		else if( cmd[0] == 'l' )
+		{
+			numsel = M_LIST;
+		}
+		else if( cmd[0] == 'p' )
+		{
+			numsel = M_PRINT_CSV;
+			cmdline+=2;
+
+			if( cmd[1] == 'p' )
+			{
+				numsel = M_PRINT_TXT;
+				cmdline+=1;
+			}
+
+			strcpy( cmdaccount, cmdline);
+		}
+		else if( cmd[0] == 'c' )
+		{
+			numsel = M_CHANGE;
+			cmdline+=2;
+			strcpy( cmdaccount, cmdline);
+		}
+		else if( cmd[0] == 'e' )
+		{
+			numsel = M_EXPORT;
+			cmdline+=2;
+
+			if( cmd[1] == 'm' )
+			{
+				numsel = M_EXPORT_MSEC;
+				cmdline+=1;
+			}
+
+			strcpy( cmdaccount, cmdline);
+		}
+		else if( cmd[0] == 'i' )
+		{
+			numsel = M_IMPORT;
+			cmdline+=2;
+
+			if( cmd[1] == 'd' )
+			{
+				numsel = M_IMPORT_DEL;
+				cmdline+=1;
+			}
+
+			strcpy( cmdaccount, cmdline);
+		}
+		else if( cmd[0] == 'r' )
+		{
+			numsel = M_REGISTER;
+			cmdline+=2;
+			strcpy( cmdaccount, cmdline);
+		}
+		else if( cmd[0] == 'D' )
+		{
+			numsel = M_DEBUG;
+			maxsel = M_DEBUG;
+		}
+		else if( cmd[0] == 'm' )
+		{
+			numsel = M_MENU;
+			maxsel = M_MENU;
+			cmdline+=2;
+			strcpy( cmdaccount, cmdline);
+
+			if( cmd[1] == '1' || cmdaccount[0] == '1' )
+			{
+				numsel = M_MENU_ON;
+				maxsel = M_MENU_ON;
+			}
+			if( cmd[1] == '0' || cmdaccount[0] == '0' )
+			{
+				numsel = M_MENU_OFF;
+				maxsel = M_MENU_OFF;
+			}
+		}
+		else if( cmd[0] == 'h' )
+		{
+			numsel = M_HELP;
+			maxsel = M_HELP;
+		}
+		else if( cmd[0] == 'x' )
+		{
+			numsel = M_EXIT;
+		}
+		else
+		{
+			cmdline[0]='\0';
+			numsel = atoi( cmd );
+
+			if( numsel == 0 )
+				numsel = M_INVALID;
+		}
+
+		if (numsel < 0 || numsel > maxsel)
+			printf("\nInvalid selection. Please try again.\n");
+		else if (numsel != M_EXIT)
+		{
+			switch (numsel)
+			{
+					// Search (exact)
+				case M_SEARCH_EXACT:
+					if( strlen(cmdline) == 0 )
+					{
+						printf( "\nWhich account: " );
+						acc[0] = '\0';
+						fflush(stdin);
+
+						strcpy( acc, getstr(MAX_ACC_LEN) );
+
+						if( strlen( acc ) == 0 )
+							break;
+					}
+					else
+					{
+						strcpy(acc,cmdline);
+					}
+
+					account[0] = '\0';
+					userid[0] = '\0';
+					password[0] = '\0';
+					description[0] = '\0';
+
+					EXEC SQL SELECT account, userid, decrypt_char(password, :enc_pwd), description INTO :account, :userid, :password, :description
+					    FROM pwdsafe.pwdlist
+					    WHERE account = :acc AND usr = :user;
+
+					switch( sqlca.sqlcode )
+					{
+						case 0:
+							printf( "\nAccount    : %s", account );
+							printf( "\nUserid     : %s", userid );
+							printf( "\nPassword   : %s", password );
+							printf( "\nDescription: %s", description );
+							break;
+						case 100:
+							printf( "\nAccount not found." );
+							break;
+						case -20144:
+						case -20145:
+							printf( "\nWrong decryption password.");
+							EXEC SQL ROLLBACK;
+							return 1;
+							break;
+						default:
+							EMB_SQL_CHECK("SELECT statement");
+							break;
+					}
+
+					break;
+
+
+					// Search (fuzzy)
+				case M_SEARCH:
+					if( strlen(cmdline) == 0 )
+					{
+						printf( "\nWhich account: " );
+						acc[0] = '\0';
+						fflush(stdin);
+
+						strcpy( acc, getstr(MAX_ACC_LEN) );
+
+						if( strlen( acc ) == 0 )
+							break;
+					}
+					else
+					{
+						strcpy(acc,cmdline);
+					}
+
+					account[0] = '\0';
+					userid[0] = '\0';
+					password[0] = '\0';
+					description[0] = '\0';
+
+
+					EXEC SQL DECLARE c2 CURSOR FOR
+					SELECT account, userid, decrypt_char(password, :enc_pwd), description
+					    FROM pwdsafe.pwdlist
+					WHERE usr = :user AND ucase(account) LIKE ucase('%' concat :acc concat '%')
+					ORDER BY account;
+
+					EXEC SQL OPEN c2;
+					EMB_SQL_CHECK("OPEN CURSOR");
+
+					i=0;
+
+					do
+					{
+						EXEC SQL FETCH c2 INTO :account, :userid, :password, :description;
+
+						if (SQLCODE != 0) break;
+
+						printf( "\nAccount    : %s", account );
+						printf( "\nUserid     : %s", userid );
+						printf( "\nPassword   : %s", password );
+						printf( "\nDescription: %s", description );
+						printf( "\n" );
+						i++;
+					}
+					while ( 1 );
+
+
+					switch( sqlca.sqlcode )
+					{
+						case -20144:
+						case -20145:
+							printf( "\nWrong decryption password.");
+							EXEC SQL ROLLBACK;
+							return 1;
+							break;
+						case 100:
+							if( i == 0 )
+								printf( "\nAccount not found." );
+							break;
+						default:
+							break;
+					}
+
+					EXEC SQL CLOSE c2;
+					EMB_SQL_CHECK("CLOSE CURSOR");
+
+					break;
+
+					// List all entries
+				case M_LIST:
+					EXEC SQL DECLARE c1 CURSOR FOR
+					SELECT account, userid, decrypt_char(password, :enc_pwd), description
+					    FROM pwdsafe.pwdlist
+					WHERE usr = :user
+					ORDER BY account;
+
+					EXEC SQL OPEN c1;
+					EMB_SQL_CHECK("OPEN CURSOR");
+
+					do
+					{
+						EXEC SQL FETCH c1 INTO :account, :userid, :password, :description;
+
+						if (SQLCODE != 0) break;
+
+						printf( "\nAccount    : %s", account );
+						printf( "\nUserid     : %s", userid );
+						printf( "\nPassword   : %s", password );
+						printf( "\nDescription: %s", description );
+						printf( "\n" );
+					}
+					while ( 1 );
+
+
+					switch( sqlca.sqlcode )
+					{
+						case -20144:
+						case -20145:
+							printf( "\nWrong decryption password.");
+							EXEC SQL ROLLBACK;
+							return 1;
+							break;
+						default:
+							break;
+					}
+
+					EXEC SQL CLOSE c1;
+					EMB_SQL_CHECK("CLOSE CURSOR");
+
+					break;
+
+					// Add entry
+				case M_ADD:
+					account[0] = '\0';
+					userid[0] = '\0';
+					password[0] = '\0';
+					description[0] = '\0';
+					fflush(stdin);
+
+					if( strlen(cmdline) == 0 )
+					{
+						printf( "\nAccount    : " );
+						account[0] = '\0';
+						fflush(stdin);
+
+						strcpy( account, getstr(MAX_ACC_LEN) );
+
+						if( strlen( account ) == 0 )
+							break;
+					}
+					else
+					{
+						printf( "\n" );
+						strcpy(account,cmdline);
+					}
+
+					printf( "Userid     : " );
+					strcpy( userid, getstr(MAX_UID_LEN) );
+					printf( "Password   : " );
+					strcpy( password, getstr(MAX_PWD_LEN) );
+					printf( "Description: " );
+					strcpy( description, getstr(MAX_DESC_LEN) );
+
+					// read description as sentence
+
+					EXEC SQL INSERT INTO pwdsafe.pwdlist (account,userid,password,description,usr,ts) values
+					   (:account, :userid, encrypt(:password, :enc_pwd), :description, :user, current timestamp);
+
+					// -803 duplicate rows - constraint violation
+
+					if( sqlca.sqlcode == -803 )
+					{
+						printf( "\nAccount already exists.\n" );
+						EXEC SQL ROLLBACK;
+						break;
+					}
+					else
+					{
+						EMB_SQL_CHECK("INSERT");
+						EXEC SQL COMMIT;
+					}
+
+					break;
+
+					// Update Entry
+				case M_UPDATE:
+					if( strlen(cmdline) == 0 )
+					{
+						printf( "\nWhich account: " );
+						acc[0] = '\0';
+						fflush(stdin);
+
+						strcpy( acc, getstr(MAX_ACC_LEN) );
+
+						if( strlen( acc ) == 0 )
+							break;
+					}
+					else
+					{
+						strcpy(acc,cmdline);
+					}
+
+
+					EXEC SQL DECLARE c5 CURSOR FOR
+					SELECT account, userid, decrypt_char(password, :enc_pwd), description
+					   FROM pwdsafe.pwdlist
+					WHERE usr = :user AND ucase(account) LIKE ucase('%' concat :acc concat '%')
+					ORDER BY account
+					FOR UPDATE;
+
+					EXEC SQL OPEN c5;
+					EMB_SQL_CHECK("OPEN CURSOR");
+
+					i=0;
+
+					do
+					{
+						account[0] = '\0';
+						userid[0] = '\0';
+						password[0] = '\0';
+						description[0] = '\0';
+
+						haccount[0] = '\0';
+						huserid[0] = '\0';
+						hpassword[0] = '\0';
+						hdescription[0] = '\0';
+
+						fflush(stdin);
+
+						EXEC SQL FETCH c5 INTO :account, :userid, :password, :description;
+						if (SQLCODE != 0) break;
+
+						do
+						{
+							printf( "\n1. Account    : %s", account );
+							printf( "\n2. Userid     : %s", userid );
+							printf( "\n3. Password   : %s", password );
+							printf( "\n4. Description: %s", description );
+							printf( "\n" );
+
+							printf( "\n Update? (1/2/3/4/N) Main Menue (q)" );
+
+							upd[0] = '\0';
+
+							fflush(stdin);
+							strcpy( upd, getstr(5) );
+
+							switch( upd[0] )
+							{
+								case '1':
+									printf( "\nAccount: " );
+									strcpy( haccount, getstr(MAX_ACC_LEN) );
+
+									EXEC SQL UPDATE pwdsafe.pwdlist SET account = :haccount, ts = current timestamp
+									WHERE CURRENT OF c5;
+
+									if( sqlca.sqlcode == -803 )
+									{
+										printf( "\nAccount already exists.\n" );
+									}
+									else
+									{
+										strcpy( account, haccount );
+									}
+									break;
+								case '2':
+									printf( "\nUserid: " );
+									strcpy( huserid, getstr(MAX_UID_LEN) );
+
+									EXEC SQL UPDATE pwdsafe.pwdlist SET userid = :huserid, ts = current timestamp
+									WHERE CURRENT OF c5;
+									EMB_SQL_CHECK("UPDATE");
+
+									strcpy( userid, huserid );
+									break;
+								case '3':
+									printf( "\nPassword: " );
+									strcpy( hpassword, getstr(MAX_PWD_LEN) );
+
+									EXEC SQL UPDATE pwdsafe.pwdlist SET password = encrypt(:hpassword, :enc_pwd), ts = current timestamp
+									WHERE CURRENT OF c5;
+									EMB_SQL_CHECK("UPDATE");
+
+									strcpy( password, hpassword );
+									break;
+								case '4':
+									printf( "\nDescription: " );
+									strcpy( hdescription, getstr(MAX_DESC_LEN) );
+
+									EXEC SQL UPDATE pwdsafe.pwdlist SET description = :hdescription, ts = current timestamp
+									WHERE CURRENT OF c5;
+									EMB_SQL_CHECK("UPDATE");
+
+									strcpy( description, hdescription );
+									break;
+								case 'q':
+									goto eloop_upd;
+									break;
+								default:
+									upd[0] = 'n';
+									break;
+							}
+						}
+						while ( upd[0] != 'n' );
+						i++;
+
+					}
+					while ( 1 );
+
+					switch( sqlca.sqlcode )
+					{
+						case -20144:
+						case -20145:
+							printf( "\nWrong decryption password.");
+							EXEC SQL ROLLBACK;
+							return 1;
+							break;
+						case -803:
+							printf( "\nAccount already exists.\n" );
+							EXEC SQL ROLLBACK;
+							break;
+						case 100:
+							if( i == 0 )
+								printf( "\nAccount not found." );
+							break;
+						default:
+							break;
+					}
+
+				eloop_upd:
+
+					EXEC SQL CLOSE c5;
+					EMB_SQL_CHECK("CLOSE CURSOR");
+
+					EXEC SQL COMMIT;
+					EMB_SQL_CHECK("COMMIT");
+
+					break;
+
+					// Delete Entry
+				case M_DELETE:
+					if( strlen(cmdline) == 0 )
+					{
+						printf( "\nWhich account: " );
+						acc[0] = '\0';
+						fflush(stdin);
+
+						strcpy( acc, getstr(MAX_ACC_LEN) );
+
+						if( strlen( acc ) == 0 )
+							break;
+					}
+					else
+					{
+						strcpy(acc,cmdline);
+					}
+
+					EXEC SQL DECLARE c4 CURSOR FOR
+					SELECT account, userid, decrypt_char(password, :enc_pwd), description
+					   FROM pwdsafe.pwdlist
+					WHERE usr = :user AND ucase(account) LIKE ucase('%' concat :acc concat '%')
+					ORDER BY account
+					FOR UPDATE;
+
+					EXEC SQL OPEN c4;
+					EMB_SQL_CHECK("OPEN CURSOR");
+
+					i=0;
+
+					do
+					{
+						account[0] = '\0';
+						userid[0] = '\0';
+						password[0] = '\0';
+						description[0] = '\0';
+
+						EXEC SQL FETCH c4 INTO :account, :userid, :password, :description;
+						if (SQLCODE != 0) break;
+
+						printf( "\nAccount    : %s", account );
+						printf( "\nUserid     : %s", userid );
+						printf( "\nPassword   : %s", password );
+						printf( "\nDescription: %s", description );
+						printf( "\n" );
+
+						printf( "\n Delete? (y/N) Main Menue (q)" );
+
+						del[0] = '\0';
+
+						fflush(stdin);
+						strcpy( del, getstr(5) );
+
+						switch( del[0] )
+						{
+							case 'y':
+								EXEC SQL DELETE FROM pwdsafe.pwdlist WHERE CURRENT OF c4;
+								EMB_SQL_CHECK("DELETE");
+								break;
+							case 'q':
+								goto eloop_del;
+								break;
+							default:
+								break;
+						}
+						i++;
+
+					}
+					while ( 1 );
+
+					switch( sqlca.sqlcode )
+					{
+						case -20144:
+						case -20145:
+							printf( "\nWrong decryption password.");
+							EXEC SQL ROLLBACK;
+							return 1;
+							break;
+						case 100:
+							if( i == 0 )
+								printf( "\nAccount not found." );
+							break;
+						default:
+							break;
+					}
+
+				eloop_del:
+
+					EXEC SQL CLOSE c4;
+					EMB_SQL_CHECK("CLOSE CURSOR");
+
+					EXEC SQL COMMIT;
+					EMB_SQL_CHECK("COMMIT");
+
+					break;
+
+					// Register new user
+				case M_REGISTER:
+					reguser[0] = '\0';
+					regpwd[0] = '\0';
+
+					if( strlen(cmdline) == 0 )
+					{
+						printf( "\nUser    : " );
+						reguser[0] = '\0';
+						fflush(stdin);
+
+						strcpy( reguser, getstr(MAX_UID_LEN) );
+
+						if( strlen( reguser ) == 0 )
+							break;
+					}
+					else
+					{
+						strcpy(reguser,cmdline);
+						printf("\n");
+					}
+
+					printf( "Password: " );
+					strcpy( regpwd, getstr(MAX_PWD_LEN) );
+
+					if( strlen( regpwd ) == 0 )
+					{
+						printf( "\n\nUser NOT registered.\n" );
+						break;
+					}
+
+					if(strlen(regpwd) < 6)
+					{
+						printf( "\n\nPassword has to be at least 6 bytes.\n" );
+						break;
+					}
+
+					EXEC SQL INSERT INTO pwdsafe.pwdlogin (usr,pwd) values
+					(:reguser, encrypt(:regpwd,:regpwd));
+
+					// -803 duplicate rows - constraint violation
+
+					if( sqlca.sqlcode == -803 )
+					{
+						printf( "\nUser already exists.\n" );
+						EXEC SQL ROLLBACK;
+						break;
+					}
+					else
+					{
+						EMB_SQL_CHECK("INSERT");
+						EXEC SQL COMMIT;
+						printf( "\n\nUser registered.\n" );
+					}
+
+					break;
+
+					// print to csv file
+				case M_PRINT_CSV:
+					if( strlen(cmdline) == 0 )
+					{
+						printf( "\nEnter [path]filename: " );
+						filename[0] = '\0';
+						fflush(stdin);
+
+						strcpy( filename, getstr(MAX_PATH_LEN) );
+
+						if( strlen( filename ) == 0 )
+							break; //fp = fopen( "pwdfile.csv", "w" );
+					}
+					else
+					{
+						strcpy(filename,cmdline);
+					}
+
+					fp = fopen( filename, "w" );
+
+					if( fp == NULL )
+					{
+						printf( "\n\n Error: Cannot write to file %s\n", filename );
+						break;
+					}
+
+					EXEC SQL DECLARE c6 CURSOR FOR
+					SELECT account, userid, decrypt_char(password, :enc_pwd), description, ts
+					    FROM pwdsafe.pwdlist
+					WHERE usr = :user
+					ORDER BY account;
+
+					EXEC SQL OPEN c6;
+					EMB_SQL_CHECK("OPEN CURSOR");
+
+					do
+					{
+						EXEC SQL FETCH c6 INTO :account, :userid, :password, :description, :ts INDICATOR :tsind;
+
+						if (SQLCODE != 0) break;
+
+						fprintf( fp, "\"%s\",", account );
+						fprintf( fp, "\"%s\",", userid );
+						fprintf( fp, "\"%s\",", password );
+						fprintf( fp, "\"%s\"", description );
+						if( tsind >= 0 )
+							fprintf( fp, ",\"%s\"", ts );
+						fprintf( fp, "\n" );
+					}
+					while ( 1 );
+
+
+					switch( sqlca.sqlcode )
+					{
+						case -20144:
+						case -20145:
+							printf( "\nWrong decryption password.");
+							EXEC SQL ROLLBACK;
+							return 1;
+							break;
+						default:
+							break;
+					}
+
+					EXEC SQL CLOSE c6;
+					EMB_SQL_CHECK("CLOSE CURSOR");
+
+					fclose( fp );
+
+					break;
+
+					// print to file
+				case M_PRINT_TXT:
+					if( strlen(cmdline) == 0 )
+					{
+						printf( "\nEnter [path]filename: " );
+						filename[0] = '\0';
+						fflush(stdin);
+
+						strcpy( filename, getstr(MAX_PATH_LEN) );
+
+						if( strlen( filename ) == 0 )
+							break; //fp = fopen( "pwdfile.csv", "w" );
+					}
+					else
+					{
+						strcpy(filename,cmdline);
+					}
+
+					fp = fopen( filename, "w" );
+
+					if( fp == NULL )
+					{
+						printf( "\n\n Error: Cannot write to file %s\n", filename );
+						break;
+					}
+
+					EXEC SQL DECLARE c7 CURSOR FOR
+					SELECT account, userid, decrypt_char(password, :enc_pwd), description
+					    FROM pwdsafe.pwdlist
+					WHERE usr = :user
+					ORDER BY account;
+
+					EXEC SQL OPEN c7;
+					EMB_SQL_CHECK("OPEN CURSOR");
+
+					do
+					{
+						EXEC SQL FETCH c7 INTO :account, :userid, :password, :description;
+
+						if (SQLCODE != 0) break;
+
+						fprintf( fp, "\nAccount    : %s", account );
+						fprintf( fp, "\nUserid     : %s", userid );
+						fprintf( fp, "\nPassword   : %s", password );
+						fprintf( fp, "\nDescription: %s", description );
+						fprintf( fp, "\n" );
+					}
+					while ( 1 );
+
+
+					switch( sqlca.sqlcode )
+					{
+						case -20144:
+						case -20145:
+							printf( "\nWrong decryption password.");
+							EXEC SQL ROLLBACK;
+							return 1;
+							break;
+						default:
+							break;
+					}
+
+					EXEC SQL CLOSE c7;
+					EMB_SQL_CHECK("CLOSE CURSOR");
+
+					fclose( fp );
+
+					break;
+
+					// Change login password
+				case M_CHANGE:
+					regpwd[0] = '\0';
+
+					printf( "\nNew password: " );
+					strcpy( regpwd, getstr(MAX_PWD_LEN) );
+
+					if( strlen( regpwd ) == 0 )
+					{
+						printf( "\n\nPassword NOT changed.\n" );
+						break;
+					}
+
+					if(strlen(regpwd) < 6)
+					{
+						printf( "\n\nPassword has to be at least 6 bytes.\n" );
+						break;
+					}
+
+					EXEC SQL BEGIN COMPOUND ATOMIC STATIC
+						UPDATE pwdsafe.pwdlist
+						SET password = encrypt( decrypt_char( password, :enc_pwd ), :regpwd )
+						WHERE usr = :user;
+
+						UPDATE pwdsafe.pwdlogin
+						SET pwd = encrypt(:regpwd,:regpwd)
+				    	WHERE usr = :user;
+
+						COMMIT ;
+					END COMPOUND ;
+
+					if( sqlca.sqlcode == 0 )
+					{
+						printf( "\n\nPassword changed.\n" );
+						enc_pwd[0] = '\0';
+						strcpy( enc_pwd, regpwd );
+					}
+					else
+					{
+						printf( "\n\nPassword NOT changed.\n" );
+					}
+
+					break;
+
+					// Export for sync
+					// Export for mSecure
+				case M_EXPORT:
+				case M_EXPORT_MSEC:
+					if( strlen(cmdline) == 0 )
+					{
+						printf( "\nEnter [path]filename: " );
+						filename[0] = '\0';
+						fflush(stdin);
+
+						strcpy( filename, getstr(MAX_PATH_LEN) );
+
+						if( strlen( filename ) == 0 )
+							break;
+					}
+					else
+					{
+						strcpy(filename,cmdline);
+					}
+
+					rc = DataExport( filename, user, enc_pwd, numsel );
+
+					if( rc != 0 )
+						printf( "\n\n Error: export to file %s\n", filename );
+
+					break;
+
+					// 11 - Import and sync
+					// 12 - Import and delete accounts that are not in imported table
+				case M_IMPORT:
+				case M_IMPORT_DEL:
+					if( strlen(cmdline) == 0 )
+					{
+						printf( "\nEnter [path]filename: " );
+						filename[0] = '\0';
+						fflush(stdin);
+
+						strcpy( filename, getstr(MAX_PATH_LEN) );
+
+						if( strlen( filename ) == 0 )
+							break;
+					}
+					else
+					{
+						strcpy(filename,cmdline);
+					}
+
+					EXEC SQL CREATE TABLE "PWDSAFE"."TPWDLIST" LIKE "PWDSAFE"."PWDLIST";
+
+					if( sqlca.sqlcode == -601 )
+					{
+						EXEC SQL DELETE FROM "PWDSAFE"."TPWDLIST";
+						EXEC SQL COMMIT;
+					}
+
+					EXEC SQL GRANT CONTROL ON TABLE pwdsafe.tpwdlist TO PUBLIC;
+					rc = DataImport( filename );
+
+					if( rc != 0 )
+					{
+						printf( "\n\n Error: import from file %s\n", filename );
+						break;
+					}
+
+					EXEC SQL COMMIT;
+
+					EXEC SQL DECLARE u1 CURSOR FOR
+					SELECT l.account, l.userid, decrypt_char(l.password, :enc_pwd), l.description,
+					       t.account, t.userid, decrypt_char(t.password, :enc_pwd), t.description
+					FROM pwdsafe.pwdlist l, pwdsafe.tpwdlist t
+					WHERE l.account = t.account AND l.usr = t.usr AND
+					l.usr = :user AND
+					(
+					l.ts < t.ts OR
+					l.ts IS NULL
+					) AND
+					(
+					l.userid != t.userid OR
+					decrypt_char(l.password, :enc_pwd) != decrypt_char(t.password, :enc_pwd) OR
+					l.description != t.description
+					)
+					ORDER BY l.account;
+
+					EXEC SQL DECLARE u2 CURSOR FOR
+					SELECT t.account, t.userid, decrypt_char(t.password, :enc_pwd), t.description
+					FROM pwdsafe.tpwdlist t
+					WHERE t.usr = :user AND t.account
+					NOT IN (SELECT account FROM pwdsafe.pwdlist l WHERE l.usr = t.usr)
+					ORDER BY t.account;
+
+					EXEC SQL DECLARE u3 CURSOR FOR
+					SELECT t.account, t.userid, decrypt_char(t.password, :enc_pwd), t.description
+					FROM pwdsafe.pwdlist t
+					WHERE t.usr = :user AND t.account
+					NOT IN (SELECT account FROM pwdsafe.tpwdlist l WHERE l.usr = t.usr)
+					ORDER BY t.account
+					FOR UPDATE;
+
+					printf( "\n Preview? (y/N)" );
+
+					tmp[0] = '\0';
+					fflush(stdin);
+					strcpy( tmp, getstr(5) );
+					preview = tmp[0];
+					prompt = 'n';
+
+					if( preview != 'y' )
+					{
+						printf( "\n Prompt? (Y/n)" );
+						tmp[0] = '\0';
+						fflush(stdin);
+						strcpy( tmp, getstr(5) );
+						prompt = tmp[0];
+					}
+
+					if( preview != 'y' )
+						preview = 'n';
+
+					if( prompt != 'n' )
+						prompt = 'y';
+
+					if( numsel == M_IMPORT )
+					{
+						EXEC SQL OPEN u1;
+						EMB_SQL_CHECK("OPEN CURSOR u1");
+
+						do
+						{
+							account[0] = '\0';
+							userid[0] = '\0';
+							password[0] = '\0';
+							description[0] = '\0';
+
+							haccount[0] = '\0';
+							huserid[0] = '\0';
+							hpassword[0] = '\0';
+							hdescription[0] = '\0';
+
+							EXEC SQL FETCH u1 INTO :account, :userid, :password, :description, :haccount, :huserid, :hpassword, :hdescription;
+							if (SQLCODE != 0) break;
+
+							printf( "\n------------------------------------" );
+							printf( "\nAccount    : %s", account );
+							printf( "\nUserid     : %s", userid );
+							printf( "\nPassword   : %s", password );
+							printf( "\nDescription: %s", description );
+							printf( "\n  CHANGING TO" );
+
+							printf( "\nAccount    : %s", haccount );
+							printf( "\nUserid     : %s", huserid );
+							printf( "\nPassword   : %s", hpassword );
+							printf( "\nDescription: %s", hdescription );
+							printf( "\n------------------------------------" );
+
+							if( preview != 'y' )
+								sync = 1;
+
+							if( prompt == 'y' )
+							{
+								printf( "\n Sync? (y/N) Main Menue (q)" );
+
+								upd[0] = '\0';
+								fflush(stdin);
+								strcpy( upd, getstr(5) );
+
+								if( upd[0] == 'q' )
+									goto eloop_sync;
+
+								if( upd[0] != 'y' )
+									sync = 0;
+							}
+
+							if( sync )
+							{
+								EXEC SQL UPDATE pwdsafe.pwdlist SET (userid, password, description, ts) =
+								(:huserid, encrypt(:hpassword, :enc_pwd), :hdescription, current timestamp)
+								WHERE account = :account AND usr = :user;
+
+								EMB_SQL_CHECK("UPDATE - SYNC");
+								//printf( "\nDEBUG: synced.\n" );
+								printf( "\nDone.\n" );
+							}
+
+						}
+						while( 1 );
+
+					eloop_sync:
+
+						EXEC SQL CLOSE u1;
+						EMB_SQL_CHECK("CLOSE CURSOR u1");
+
+						if( upd[0] == 'q' )
+							goto eloop_sync4;
+
+						EXEC SQL OPEN u2;
+						EMB_SQL_CHECK("OPEN CURSOR u2");
+
+						do
+						{
+							account[0] = '\0';
+							userid[0] = '\0';
+							password[0] = '\0';
+							description[0] = '\0';
+
+							EXEC SQL FETCH u2 INTO :account, :userid, :password, :description INDICATOR :recind;
+							if (SQLCODE != 0) break;
+
+							printf( "\n------------------------------------" );
+							printf( "\nAccount    : %s", account );
+							printf( "\nUserid     : %s", userid );
+							printf( "\nPassword   : %s", password );
+							printf( "\nDescription: %s", description );
+							printf( "\n  ADD" );
+							printf( "\n------------------------------------" );
+
+							if( preview != 'y' )
+								sync = 1;
+
+							if( prompt == 'y' )
+							{
+								printf( "\n Add? (y/N) Main Menue (q)" );
+
+								upd[0] = '\0';
+								fflush(stdin);
+								strcpy( upd, getstr(5) );
+
+								if( upd[0] == 'q' )
+									goto eloop_sync2;
+
+								if( upd[0] != 'y' )
+									sync = 0;
+							}
+
+							if( sync )
+							{
+								EXEC SQL INSERT INTO pwdsafe.pwdlist (account,userid,password,description,usr,ts) values
+								(:account, :userid, encrypt(:password, :enc_pwd), :description, :user, current timestamp);
+
+								EMB_SQL_CHECK("INSERT - SYNC");
+								//printf( "\nDEBUG: added.\n" );
+								printf( "\nDone.\n" );
+							}
+
+						}
+						while( 1 );
+
+					eloop_sync2:
+
+						EXEC SQL CLOSE u2;
+						EMB_SQL_CHECK("CLOSE CURSOR u2");
+
+						if( upd[0] == 'q' )
+							goto eloop_sync4;
+					}
+
+					if( numsel == M_IMPORT_DEL )
+					{
+						EXEC SQL OPEN u3;
+						EMB_SQL_CHECK("OPEN CURSOR u3");
+
+						do
+						{
+							account[0] = '\0';
+							userid[0] = '\0';
+							password[0] = '\0';
+							description[0] = '\0';
+
+							EXEC SQL FETCH u3 INTO :account, :userid, :password, :description INDICATOR :recind;
+							if (SQLCODE != 0) break;
+
+							printf( "\n------------------------------------" );
+							printf( "\nAccount    : %s", account );
+							printf( "\nUserid     : %s", userid );
+							printf( "\nPassword   : %s", password );
+							printf( "\nDescription: %s", description );
+							printf( "\n  DELETE" );
+							printf( "\n------------------------------------" );
+
+							if( preview != 'y' )
+								sync = 1;
+
+							if( prompt == 'y' )
+							{
+								printf( "\n Delete? (y/N) Main Menue (q)" );
+
+								upd[0] = '\0';
+								fflush(stdin);
+								strcpy( upd, getstr(5) );
+
+								if( upd[0] == 'q' )
+									goto eloop_sync3;
+
+								if( upd[0] != 'y' )
+									sync = 0;
+							}
+
+							if( sync )
+							{
+								EXEC SQL DELETE FROM pwdsafe.pwdlist WHERE CURRENT OF u3;
+
+								EMB_SQL_CHECK("DELETE - SYNC");
+								//printf( "\nDEBUG: deleted.\n" );
+								printf( "\nDone.\n" );
+							}
+
+						}
+						while( 1 );
+
+					eloop_sync3:
+
+						EXEC SQL CLOSE u3;
+						EMB_SQL_CHECK("CLOSE CURSOR u3");
+					}
+
+				eloop_sync4:
+
+					EXEC SQL COMMIT;
+
+					EXEC SQL DROP TABLE "PWDSAFE"."TPWDLIST";
+
+					EXEC SQL COMMIT;
+
+					break;
+
+					// get Debug info
+				case M_DEBUG:
+					if( strlen(uid) == 0 )
+					{
+						huserid[0] = '\0';
+						EXEC SQL SELECT current user INTO :huserid FROM sysibm.sysdummy1;
+						strcpy( uid, huserid );
+					}
+					printf("\nPwdSafe Application v%s (%s)\n",RELEASE,REVISION);
+					printf("\nDatabase     : %s", db );
+					printf("\nDatabase User: %s\n", uid );
+					printf("\nPwdSafe User : %s\n", user );
+					break;
+
+					// print menu
+				case M_MENU:
+					if( menu != 1 )
+					{
+						printf("\n");
+						print_menu(admin);
+					}
+					break;
+
+					// turn menu on
+				case M_MENU_ON:
+					EXEC SQL UPDATE pwdsafe.pwdlogin SET menu = 1 WHERE usr = :user;
+					EMB_SQL_CHECK("UPDATE MENU ON");
+					EXEC SQL COMMIT;
+					menu = 1;
+					break;
+
+					// turn menu off
+				case M_MENU_OFF:
+					EXEC SQL UPDATE pwdsafe.pwdlogin SET menu = 0 WHERE usr = :user;
+					EMB_SQL_CHECK("UPDATE MENU OFF");
+					EXEC SQL COMMIT;
+					menu = 0;
+					break;
+
+					// show help
+				case M_HELP:
+					print_help();
+					break;
+
+				default:
+					printf("\nError in Reset... should not happen... exiting...\n");
+					exit(99);
+					break;
+			}  /* switch numsel */
+
+		} /* if */
+
+	}
+	while (numsel != M_EXIT);
+
+	memset(enc_pwd,'\0',sizeof(enc_pwd));
+
+	EXEC SQL CONNECT RESET;
+	EMB_SQL_CHECK("CONNECT RESET");
+	return 0;
 }
-
-//export to e.csv of del select case substr(account,1,3) when 'ibm' then 'IBM' else 'Personal' END, 'PwdSafe', account, description, userid, decrypt_char(password, :pwd), ts from pwdsafe.pwdlist where usr='tessus' order by account
-// enc_pwd
 
 int DataExport(char *dataFileName, char *user, char *enc_pwd, int sel)
 {
@@ -1511,7 +1549,7 @@ int DataExport(char *dataFileName, char *user, char *enc_pwd, int sel)
 	/* export data */
 	db2Export(db2Version820,
 	          &exportParmStruct,
-			  &sqlca);
+	          &sqlca);
 
 	/* free memory allocated */
 	free(pAction);
@@ -1543,7 +1581,7 @@ int DataImport(char *dataFileName)
 	dataDescriptor.dcolmeth = SQL_METH_D;
 	strcpy(actionString, "INSERT INTO pwdsafe.tpwdlist");
 	pAction = (struct sqlchar *)malloc(sizeof(short) +
-									   sizeof(actionString) + 1);
+	                                   sizeof(actionString) + 1);
 	pAction->length = strlen(actionString);
 	strcpy(pAction->data, actionString);
 	strcpy(msgFileName, "tbimport.MSG");
@@ -1574,7 +1612,7 @@ int DataImport(char *dataFileName)
 	/* import table */
 	db2Import(db2Version820,
 	          &importParmStruct,
-			  &sqlca);
+	          &sqlca);
 
 	/* free memory allocated */
 	free(pAction);
@@ -1622,7 +1660,7 @@ void print_menu( int admin )
 	printf("13 | id - Import and delete\n" );
 	if( admin > 0 )
 	{
- 		printf("14 | r  - Register new user\n" );
+		printf("14 | r  - Register new user\n" );
 	}
 	printf("\n   Enter x to exit.\n");
 	printf("*****************************************\n");
