@@ -18,12 +18,12 @@
 #include <ctype.h>
 #include "utilemb.h"
 
-#define	RELEASE	"1.11"
+#define	RELEASE	"1.12"
 #define REVISION "$Revision$"
 
 #define MAX_ACC_LEN		64
 #define MAX_UID_LEN		64
-#define MAX_PWD_LEN		64
+#define MAX_PWD_LEN		512
 #define MAX_DESC_LEN	2048
 #define MAX_CMD_LEN		2
 
@@ -74,11 +74,11 @@ int main(int argc, char *argv[])
 		short there;				// host var to check if tables are there
 		char account[65];
 		char userid[65];
-		char password[65];
+		char password[513];
 		char description[2049];
 		char haccount[65];
 		char huserid[65];
-		char hpassword[65];
+		char hpassword[513];
 		char hdescription[2049];
 		char enc_pwd[65];			// pwd entered
 		char acc[65];				// host var for where clause
