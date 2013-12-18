@@ -42,7 +42,8 @@
 #define M_EXPORT_MSEC	11
 #define M_IMPORT		12
 #define M_IMPORT_DEL	13
-#define M_REGISTER		14
+#define M_SWITCH_USER   14
+#define M_REGISTER		15
 #define M_MENU			80
 #define	M_MENU_ON		81
 #define M_MENU_OFF		82
@@ -56,7 +57,7 @@ int DataExport(char *, char *, char *, int);
 int DataImport(char *);
 char* getstr( int len );
 void print_menu( int admin );
-void print_help( void );
+void print_help( int admin );
 
 
 EXEC SQL INCLUDE SQLCA;
@@ -68,9 +69,12 @@ int main(int argc, char *argv[])
 		char reguser[65];
 		char regpwd[65];
 		char user[65];				// var for actual user
+		char huser[65];				// helper var for switch user
 		char pwd[65];				// host var for hashed pwd in pwdsafe.pwdlogin
 		short admin;				// host var, if user is admin -> allow register new users
+		short hadmin;				// helper var for switch user
 		short menu;					// host var for menu flag
+		short hmenu;				// helper var for switch user
 		short there;				// host var to check if tables are there
 		char account[65];
 		char userid[65];
@@ -81,6 +85,7 @@ int main(int argc, char *argv[])
 		char hpassword[513];
 		char hdescription[2049];
 		char enc_pwd[65];			// pwd entered
+		char henc_pwd[65];			// helper pwd entered for switch user
 		char acc[65];				// host var for where clause
 		char ts[32];
 		short int tsind;			// indicator var for ts
@@ -241,7 +246,8 @@ int main(int argc, char *argv[])
 			print_menu( admin );
 		}
 
-		printf("==> ");
+		//printf("==> ");
+		printf("(%s)-> ", user);
 
 		fflush(stdin);
 
@@ -280,6 +286,12 @@ int main(int argc, char *argv[])
 			if( cmd[1] == 'e' )
 			{
 				numsel = M_SEARCH_EXACT;
+				cmdline+=1;
+			}
+			
+			if( cmd[1] == 'u' )
+			{
+				numsel = M_SWITCH_USER;
 				cmdline+=1;
 			}
 
@@ -399,6 +411,107 @@ int main(int argc, char *argv[])
 		{
 			switch (numsel)
 			{
+					// Switch user
+				case M_SWITCH_USER:
+					if( strlen(cmdline) == 0 )
+					{
+						printf( "\nUser: " );
+						huser[0] = '\0';
+						fflush(stdin);
+
+						strcpy( huser, getstr(MAX_UID_LEN) );
+
+						if( strlen( huser ) == 0 )
+							break;
+					}
+					else
+					{
+						strcpy(huser,cmdline);
+					}
+
+					EXEC SQL SELECT admin INTO :hadmin
+						FROM pwdsafe.pwdlogin
+						WHERE usr = :huser;
+
+					if( sqlca.sqlcode == 100 )
+					{
+						printf( "\nUser not found.\n\n" );
+						memset(huser,'\0',sizeof(huser));
+						break;
+					}
+					EMB_SQL_CHECK("SELECT");
+					
+					printf( "\nPlease enter the encryption password: " );
+					henc_pwd[0] = '\0';
+					
+#ifdef WIN32
+					i = 0;
+					do
+					{
+						ch = _getch();
+						switch( ch )
+						{
+							case 8:
+								if( i != 0 )
+								{
+									i=i-1;
+									printf( "d" );
+								}
+								break;
+							case 13:
+								break;
+							default:
+								henc_pwd[i++] = ch;
+								printf( "*" );
+								break;
+						}
+					}
+					while( ch != '\r' );
+
+					henc_pwd[i] = '\0';
+#endif
+
+#if defined (LINUX) || defined (DARWIN)
+					henc_pwd[0] = '\0';
+					tcgetattr( fileno(stdin), &initialrsettings );
+					newrsettings = initialrsettings;
+					newrsettings.c_lflag &= ~ECHO;
+					tcsetattr( fileno(stdin), TCSAFLUSH, &newrsettings );
+					strcpy( henc_pwd, getstr(MAX_PWD_LEN) );
+					tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
+#endif
+
+					if( strlen(henc_pwd) < 6 )
+					{
+						printf( "\n\nPassword has to be at least 6 characters long." );
+						memset(henc_pwd,'\0',sizeof(henc_pwd));
+						memset(huser,'\0',sizeof(huser));
+						break;
+					}
+
+					EXEC SQL SELECT menu INTO :hmenu
+						FROM pwdsafe.pwdlogin
+						WHERE usr = :huser AND pwd=encrypt(:henc_pwd,:henc_pwd);
+
+					if( sqlca.sqlcode == 100 )
+					{
+						printf( "\n\nUser / Password do not match." );
+						memset(henc_pwd,'\0',sizeof(henc_pwd));
+						memset(huser,'\0',sizeof(huser));
+						break;
+					}
+					EMB_SQL_CHECK("SELECT");
+					
+					strcpy( user, huser );
+					strcpy( enc_pwd, henc_pwd );
+					admin = hadmin;
+					menu = hmenu;
+					
+					memset(henc_pwd,'\0',sizeof(henc_pwd));
+					memset(huser,'\0',sizeof(huser));
+					
+					break;
+					
 					// Search (exact)
 				case M_SEARCH_EXACT:
 					if( strlen(cmdline) == 0 )
@@ -1476,7 +1589,7 @@ int main(int argc, char *argv[])
 
 					// show help
 				case M_HELP:
-					print_help();
+					print_help(admin);
 					break;
 
 				default:
@@ -1658,15 +1771,16 @@ void print_menu( int admin )
 	printf("11 | em - Export for mSecure\n" );
 	printf("12 | i  - Import and sync\n" );
 	printf("13 | id - Import and delete\n" );
+	printf("14 | su - Switch user\n" );
 	if( admin > 0 )
 	{
-		printf("14 | r  - Register new user\n" );
+		printf("15 | r  - Register new user\n" );
 	}
 	printf("\n   Enter x to exit.\n");
 	printf("*****************************************\n");
 }
 
-void print_help( void )
+void print_help( int admin )
 {
 	printf("\n");
 	printf("***************************************************\n");
@@ -1689,8 +1803,13 @@ void print_help( void )
 	printf("i  [filename]    Import and sync\n" );
 	printf("id [filename]    Import and delete\n" );
 	printf("\n");
-	printf("r  [user]        Register new user\n" );
+	printf("su [user]        Switch user\n" );
 	printf("\n");
+	if( admin > 0 )
+	{
+		printf("r  [user]        Register new user\n" );
+		printf("\n");
+	}
 	printf("m                Print menu\n" );
 	printf("m0               Turn menu off\n" );
 	printf("m1               Turn menu on\n" );
