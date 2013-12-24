@@ -9,3 +9,4 @@ pwdadmw
 *.pdb
 *.MSG
 c.bat
+gchash.h
