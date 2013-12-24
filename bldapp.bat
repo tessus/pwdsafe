@@ -1,18 +1,5 @@
 @echo off
 
-rem $Id$
-
-rem Licensed Materials - Property of IBM
-rem
-rem Governed under the terms of the International
-rem License Agreement for Non-Warranted Sample Code.
-rem
-rem  (C) COPYRIGHT International Business Machines Corp. 1996 - 2002
-rem  All Rights Reserved.
-rem
-rem  US Government Users Restricted Rights - Use, duplication or
-rem  disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
-
 rem BATCH FILE: bldapp.bat
 rem Builds C applications on Windows
 rem Usage: bldapp prog_name [ db_name [ userid password ]]

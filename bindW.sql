@@ -1,5 +1,3 @@
--- $Id$
-
 --CONNECT TO <database> user <USER>;
 
 BIND @pwdsafeW.lst BLOCKING ALL SQLERROR CONTINUE VALIDATE RUN;

@@ -1,7 +1,5 @@
 #! /bin/sh
 #
-# $Id$
-#
 # SCRIPT: bldapp
 # Builds C applications for Linux, AIX, MacOSX
 # Usage: bldapp <prog_name> [ <db_name> [ <userid> <password> ]]

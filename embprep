@@ -1,7 +1,5 @@
 #! /bin/sh
 #
-# $Id$
-#
 # SCRIPT: embprep
 # To prep and bind C embedded SQL programs
 #

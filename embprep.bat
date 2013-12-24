@@ -1,7 +1,5 @@
 @echo off
 
-rem $Id$
-
 rem BATCH FILE: embprep.bat 
 rem Prep and binds a C embedded SQL program on Windows
 rem Usage: embprep <prog_name> [ <db_name> [ <userid> <password> ]]

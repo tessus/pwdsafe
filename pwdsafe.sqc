@@ -1,7 +1,3 @@
-/*
- * $Id$
- */
-
 #if defined (LINUX) || defined (DARWIN)
 #include <termios.h>
 #endif

@@ -1,5 +1,3 @@
--- $Id$
-
 --CONNECT TO <database>;
 
 ------------------------------------------------
@@ -17,8 +15,9 @@ CREATE TABLE "PWDSAFE "."PWDLOGIN"  (
 		  "USR" VARCHAR(64) NOT NULL , 
 		  "PWD" VARCHAR(80) FOR BIT DATA NOT NULL , 
 		  "ADMIN" INTEGER NOT NULL WITH DEFAULT 0 , 
-		  "MENU" INTEGER NOT NULL WITH DEFAULT 1 )   
-		 IN "DATA4K" INDEX IN "IDX4K" ; 
+		  "MENU" INTEGER NOT NULL WITH DEFAULT 1 )
+;
+--		 IN "DATA4K" INDEX IN "IDX4K" ; 
 
 COMMENT ON TABLE "PWDSAFE "."PWDLOGIN" IS 'Login Table for Password Application';
 
@@ -39,7 +38,8 @@ CREATE TABLE "PWDSAFE "."PWDLIST"  (
 		  "DESCRIPTION" VARCHAR(2048) , 
 		  "USR" VARCHAR(64) NOT NULL , 
 		  "TS" TIMESTAMP )   
-		 IN "DATA4K" INDEX IN "IDX4K" ; 
+;
+--		 IN "DATA4K" INDEX IN "IDX4K" ; 
 
 COMMENT ON TABLE "PWDSAFE "."PWDLIST" IS 'Pwd Table for Password Application';
 
