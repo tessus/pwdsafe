@@ -13,9 +13,11 @@
 #endif
 #include <ctype.h>
 #include "utilemb.h"
+#if defined (LINUX) || defined (DARWIN)
+#include "gchash.h"
+#endif
 
-#define	RELEASE	"1.13"
-#define REVISION "$Revision$"
+#define	RELEASE	"1.14"
 
 #define MAX_ACC_LEN		64
 #define MAX_UID_LEN		64
@@ -119,7 +121,11 @@ int main(int argc, char *argv[])
 
 	if( (argc > 1) && ((strcmp( argv[1], "-v" ) == 0) || (strcmp( argv[1], "--version" ) == 0)) )
 	{
-		printf( "\nPwdSafe Application v%s (%s)\n\n", RELEASE, REVISION );
+#ifdef COMMIT_HASH
+		printf( "\nPwdSafe Application v%s (%s)\n\n", RELEASE, COMMIT_HASH_ABBREV );
+#else
+		printf( "\nPwdSafe Application v%s\n\n", RELEASE );
+#endif
 		return 0;
 	}
 
@@ -228,7 +234,12 @@ int main(int argc, char *argv[])
 	EMB_SQL_CHECK("SELECT");
 
 	printf("\n\n");
-	printf("PwdSafe Application v%s (%s)\n",RELEASE,REVISION);
+
+#ifdef COMMIT_HASH
+	printf("PwdSafe Application v%s (%s)\n", RELEASE, COMMIT_HASH_ABBREV );
+#else
+	printf("PwdSafe Application v%s\n", RELEASE );
+#endif
 
 	do
 	{
@@ -1552,10 +1563,17 @@ int main(int argc, char *argv[])
 						EXEC SQL SELECT current user INTO :huserid FROM sysibm.sysdummy1;
 						strcpy( uid, huserid );
 					}
-					printf("\nPwdSafe Application v%s (%s)\n",RELEASE,REVISION);
+#ifdef COMMIT_HASH
+					printf( "\nPwdSafe Application v%s (%s)\n", RELEASE, COMMIT_HASH_ABBREV );
+#else
+					printf( "\nPwdSafe Application v%s\n", RELEASE );
+#endif
 					printf("\nDatabase     : %s", db );
 					printf("\nDatabase User: %s\n", uid );
 					printf("\nPwdSafe User : %s\n", user );
+#ifdef COMMIT_HASH
+					printf( "\n$Id: %s$\n", COMMIT_HASH );
+#endif
 					break;
 
 					// print menu
