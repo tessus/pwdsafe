@@ -20,6 +20,7 @@ COMMIT_HASH=`git log -1 --pretty=%H`
 
 if [ "$?" == "0" ]
 then
+  echo "" >>$INCFILE
   echo "#define COMMIT_HASH \"${COMMIT_HASH}\"" >>$INCFILE
   COMMIT_HASH_ABBREV=`git log -1 --pretty=%h`
   echo "#define COMMIT_HASH_ABBREV \"${COMMIT_HASH_ABBREV}\"" >>$INCFILE
