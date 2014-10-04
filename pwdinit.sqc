@@ -5,9 +5,7 @@
 #include <ctype.h>
 #include "utilemb.h"
 
-
 EXEC SQL INCLUDE SQLCA;
-
 
 int execi(char s[1000]);
 char* getstr( int len );
@@ -51,9 +49,7 @@ int main(int argc, char *argv[])
 			break;
 	}
 
-
 	// init connection vars
-
 	db[0] = '\0';
 	uid[0] = '\0';
 	passwd[0] = '\0';
@@ -124,7 +120,7 @@ int main(int argc, char *argv[])
 		sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLIST\"  (	\
 		  \"ACCOUNT\" VARCHAR(64) NOT NULL , 		\
 		  \"USERID\" VARCHAR(64) NOT NULL , 		\
-		  \"PASSWORD\" VARCHAR(80) FOR BIT DATA , 	\
+		  \"PASSWORD\" VARCHAR(528) FOR BIT DATA , 	\
 		  \"DESCRIPTION\" VARCHAR(2048) ,			\
 		  \"USR\" VARCHAR(64) NOT NULL,				\
 		  \"TS\" TIMESTAMP ) 						\
@@ -182,8 +178,6 @@ int main(int argc, char *argv[])
 	}
 
 }
-
-
 
 int execi (char s[1000])
 {
