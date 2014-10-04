@@ -13,111 +13,115 @@ int execi(char s[1000]);
 char* getstr( int len );
 
 EXEC SQL BEGIN DECLARE SECTION;
-        struct VARCHAR {
-           short len;
-           char  stmt[1000];
-        } sqlstmt; /* Varchar for statement text    */
+	struct VARCHAR
+	{
+		short len;
+		char  stmt[1000];
+	} sqlstmt; /* Varchar for statement text    */
 EXEC SQL END DECLARE SECTION;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 
-   EXEC SQL BEGIN DECLARE SECTION;
-           short there;				// host var to check if tables are there
+	EXEC SQL BEGIN DECLARE SECTION;
+		short there;             // host var to check if tables are there
 
-           char uid[9];             // connection vars
-      	   char passwd[19];
-      	   char db[19];
-      	   char tbs[129];			// host var for tablespaces
-   EXEC SQL END DECLARE SECTION;
+		char uid[9];             // connection vars
+		char passwd[19];
+		char db[19];
+		char tbs[129];           // host var for tablespaces
+	EXEC SQL END DECLARE SECTION;
 
-   unsigned int numsel = 999;       // menue var
-   unsigned int maxsel = 0;
-   struct sqlca sqlca;              // sqlca structure
-   char tbspace[256];
-   char itbspace[256];
-   char hst[1000];
-
-
-   switch( argc )
-   {
-	   case 2:
-	   case 4:
-	   		break;
-	   default:
-            printf ("\nUSAGE: %s database [userid passwd]\n\n", argv[0]);
-            return 1;
-            break;
-   }
+	unsigned int numsel = 999;       // menue var
+	unsigned int maxsel = 0;
+	struct sqlca sqlca;              // sqlca structure
+	char tbspace[256];
+	char itbspace[256];
+	char hst[1000];
 
 
-   // init connection vars
+	switch( argc )
+	{
+		case 2:
+		case 4:
+			break;
+		default:
+			printf ("\nUSAGE: %s database [userid passwd]\n\n", argv[0]);
+			return 1;
+			break;
+	}
 
-   db[0] = '\0';
-   uid[0] = '\0';
-   passwd[0] = '\0';
 
-   switch( argc )
-   {
-       case 2:
-          strcpy (db, argv[1]);
-          EXEC SQL CONNECT TO :db;
-          EMB_SQL_CHECK("CONNECT TO DB");
-          break;
-       case 4:
-          strcpy (db, argv[1]);
-          strcpy (uid, argv[2]);
-          strcpy (passwd, argv[3]);
-          EXEC SQL CONNECT TO :db USER :uid USING :passwd;
-          EMB_SQL_CHECK("CONNECT TO DB");
-          break;
-       default:
-          printf ("\nUSAGE: %s database [userid passwd]\n\n", argv[0]);
-          return 1;
-          break;
-   }
+	// init connection vars
 
-   // check if tables are there
+	db[0] = '\0';
+	uid[0] = '\0';
+	passwd[0] = '\0';
 
-   EXEC SQL SELECT count(tabname) INTO :there
-       FROM syscat.tables
-       WHERE tabschema = 'PWDSAFE' AND tabname = 'PWDLIST' OR tabname = 'PWDLOGIN';
+	switch( argc )
+	{
+		case 2:
+			strcpy (db, argv[1]);
+			EXEC SQL CONNECT TO :db;
+			EMB_SQL_CHECK("CONNECT TO DB");
+			break;
+		case 4:
+			strcpy (db, argv[1]);
+			strcpy (uid, argv[2]);
+			strcpy (passwd, argv[3]);
+			EXEC SQL CONNECT TO :db USER :uid USING :passwd;
+			EMB_SQL_CHECK("CONNECT TO DB");
+			break;
+		default:
+			printf ("\nUSAGE: %s database [userid passwd]\n\n", argv[0]);
+			return 1;
+			break;
+	}
 
-   if( there < 2 )
-   {
-       printf( "\nTables not in database\n\n" );
-       printf( "Available tablespaces:\n\n" );
+	// check if tables are there
 
-       EXEC SQL DECLARE c1 CURSOR FOR select trim(tbspace) from syscat.tablespaces;
-       EXEC SQL OPEN c1;
-       do {
-           EXEC SQL FETCH c1 INTO :tbs;
+	EXEC SQL SELECT count(tabname) INTO :there
+	    FROM syscat.tables
+	    WHERE tabschema = 'PWDSAFE' AND tabname = 'PWDLIST' OR tabname = 'PWDLOGIN';
 
-           if (SQLCODE != 0) break;
+	if( there < 2 )
+	{
+		printf( "\nTables not in database\n\n" );
+		printf( "Available tablespaces:\n\n" );
 
-           printf( "%s\n", tbs );
-       } while ( 1 );
-       EXEC SQL CLOSE c1;
+		EXEC SQL DECLARE c1 CURSOR FOR select trim(tbspace) from syscat.tablespaces;
+		EXEC SQL OPEN c1;
+		do
+		{
+			EXEC SQL FETCH c1 INTO :tbs;
 
-   	   printf( "\nData Tablespace: " );
-   	   tbspace[0] = '\0';
-	   fflush(stdin);
-	   strcpy( tbspace, getstr(256) );
+			if (SQLCODE != 0) break;
 
-	   printf( "\nIndex Tablespace (leave blank for same as data tablespace): " );
-	   itbspace[0] = '\0';
-	   fflush(stdin);
-	   strcpy( itbspace, getstr(256) );
+			printf( "%s\n", tbs );
+		}
+		while ( 1 );
+		EXEC SQL CLOSE c1;
 
-	   if( strlen( itbspace ) == 0 )
-	      strcpy( itbspace, tbspace );
+		printf( "\nData Tablespace: " );
+		tbspace[0] = '\0';
+		fflush(stdin);
+		strcpy( tbspace, getstr(256) );
 
-   	   printf( "\nCreating tables..." );
+		printf( "\nIndex Tablespace (leave blank for same as data tablespace): " );
+		itbspace[0] = '\0';
+		fflush(stdin);
+		strcpy( itbspace, getstr(256) );
 
-   	   // create the tables
+		if( strlen( itbspace ) == 0 )
+			strcpy( itbspace, tbspace );
 
-	   hst[0] = '\0';
+		printf( "\nCreating tables..." );
 
-	   sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLIST\"  (	\
+		// create the tables
+
+		hst[0] = '\0';
+
+		sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLIST\"  (	\
 		  \"ACCOUNT\" VARCHAR(64) NOT NULL , 		\
 		  \"USERID\" VARCHAR(64) NOT NULL , 		\
 		  \"PASSWORD\" VARCHAR(80) FOR BIT DATA , 	\
@@ -126,103 +130,104 @@ int main(int argc, char *argv[]) {
 		  \"TS\" TIMESTAMP ) 						\
 		  IN \"%s\" INDEX IN \"%s\"", tbspace, itbspace );
 
-       execi( hst );
+		execi( hst );
 
-       hst[0] = '\0';
+		hst[0] = '\0';
 
-       sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLOGIN\"  (	\
+		sprintf( hst, "CREATE TABLE \"PWDSAFE\".\"PWDLOGIN\"  (	\
  		  \"USR\" VARCHAR(64) NOT NULL ,				\
  		  \"PWD\" VARCHAR(80) FOR BIT DATA NOT NULL ,	\
  		  \"ADMIN\" INTEGER NOT NULL WITH DEFAULT 0 ,	\
  		  \"MENU\" INTEGER NOT NULL WITH DEFAULT 1)		\
  		  IN \"%s\" INDEX IN \"%s\"" , tbspace, itbspace );
 
-       execi( hst );
+		execi( hst );
 
-       printf( "\nCreating indexes...", tbspace );
+		printf( "\nCreating indexes...", tbspace );
 
-       // primary keys
+		// primary keys
 
-       execi(
+		execi(
 
-       "ALTER TABLE \"PWDSAFE\".\"PWDLIST\"				\
+		    "ALTER TABLE \"PWDSAFE\".\"PWDLIST\"				\
 	       ADD CONSTRAINT \"PK_PWDLIST\" PRIMARY KEY	\
 	           (\"ACCOUNT\", \"USR\")"
 
-       );
+		);
 
-       execi(
+		execi(
 
-       "ALTER TABLE \"PWDSAFE\".\"PWDLOGIN\"			\
+		    "ALTER TABLE \"PWDSAFE\".\"PWDLOGIN\"			\
 	       ADD CONSTRAINT \"PK_PWDLOGIN\" PRIMARY KEY	\
 		       (\"USR\")"
 
-       );
+		);
 
-       // creating foreign key
+		// creating foreign key
 
-       execi(
+		execi(
 
-	   "ALTER TABLE PWDSAFE.PWDLIST ADD CONSTRAINT FK_USR 		\
+		    "ALTER TABLE PWDSAFE.PWDLIST ADD CONSTRAINT FK_USR 		\
 	   FOREIGN KEY (USR) REFERENCES PWDSAFE.PWDLOGIN (USR)  	\
 	   ON DELETE NO ACTION ON UPDATE NO ACTION 					\
 	   ENFORCED  ENABLE QUERY OPTIMIZATION"
 
-	   );
+		);
 
-       printf( "\n\n" );
-   }
-   else
-   {
-        printf( "\nTables already in database\n\n" );
-   }
+		printf( "\n\n" );
+	}
+	else
+	{
+		printf( "\nTables already in database\n\n" );
+	}
 
 }
 
 
 
-int execi (char s[1000]) {
+int execi (char s[1000])
+{
 
-   strcpy(sqlstmt.stmt, s);
+	strcpy(sqlstmt.stmt, s);
 
-   sqlstmt.len = strlen(sqlstmt.stmt);
+	sqlstmt.len = strlen(sqlstmt.stmt);
 
-   EXEC SQL
-      EXECUTE IMMEDIATE :sqlstmt;
+	EXEC SQL
+	   EXECUTE IMMEDIATE :sqlstmt;
 
-   //printf( "\n%s\n", s );
-   //printf( "sqlcode: %d\n", sqlca.sqlcode);
+	//printf( "\n%s\n", s );
+	//printf( "sqlcode: %d\n", sqlca.sqlcode);
 
-   //EMB_SQL_CHECK("SQL Check");
+	//EMB_SQL_CHECK("SQL Check");
 
-   if( sqlca.sqlcode == -204 )
-   {
-      printf( "\n\nThe entered tablespace does not exist.\n\n" );
-      EXEC SQL ROLLBACK;
-      EXEC SQL CONNECT RESET;
-      EMB_SQL_CHECK("CONNECT RESET");
-      exit(99);
-   }
+	if( sqlca.sqlcode == -204 )
+	{
+		printf( "\n\nThe entered tablespace does not exist.\n\n" );
+		EXEC SQL ROLLBACK;
+		EXEC SQL CONNECT RESET;
+		EMB_SQL_CHECK("CONNECT RESET");
+		exit(99);
+	}
 
-   if( sqlca.sqlcode == -601 )
-   {
-      //printf( "\n\nTable already exists.\n" );
-      EXEC SQL ROLLBACK;
-      return -601;
-   }
-   if( sqlca.sqlcode == -6244 )
-   {
-      //printf( "\n\nIndex already exists.\n" );
-      EXEC SQL ROLLBACK;
-      return -624;
-   }
+	if( sqlca.sqlcode == -601 )
+	{
+		//printf( "\n\nTable already exists.\n" );
+		EXEC SQL ROLLBACK;
+		return -601;
+	}
+	if( sqlca.sqlcode == -6244 )
+	{
+		//printf( "\n\nIndex already exists.\n" );
+		EXEC SQL ROLLBACK;
+		return -624;
+	}
 
 
-   EXEC SQL COMMIT;
+	EXEC SQL COMMIT;
 
-   EMB_SQL_CHECK("COMMIT");
+	EMB_SQL_CHECK("COMMIT");
 
-   return 0;
+	return 0;
 }
 
 char* getstr( int len )

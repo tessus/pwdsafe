@@ -14,81 +14,91 @@ int SqlInfoPrint( char *         appMsg,
                   struct sqlca * pSqlca,
                   int            line,
                   char *         file )
-{   int   rc = 0;
+{
+	int   rc = 0;
 
-    char  sqlInfo[1024];
-    char  sqlInfoToken[1024];
+	char  sqlInfo[1024];
+	char  sqlInfoToken[1024];
 
-    char  sqlstateMsg[1024];
-    char  errorMsg[1024];
-
-
-    if (pSqlca->sqlcode != 0 && pSqlca->sqlcode != 100)
-    {   strcpy(sqlInfo, "");
-
-        if( pSqlca->sqlcode < 0)
-        {   sprintf( sqlInfoToken, "\n---- error report ----\n");
-            strcat( sqlInfo, sqlInfoToken);
-        }
-        else
-        {   sprintf( sqlInfoToken, "\n---- warning report ----\n");
-            strcat( sqlInfo, sqlInfoToken);
-        } /* endif */
-
-        sprintf( sqlInfoToken, "  app. message      = %s\n", appMsg);
-        strcat( sqlInfo, sqlInfoToken);
-        sprintf( sqlInfoToken, "  line              = %d\n", line);
-        strcat( sqlInfo, sqlInfoToken);
-        sprintf( sqlInfoToken, "  file              = %s\n", file);
-        strcat( sqlInfo, sqlInfoToken);
-        sprintf( sqlInfoToken, "  SQLCODE           = %d\n", pSqlca->sqlcode);
-        strcat( sqlInfo, sqlInfoToken);
-
-        /* get error message */
-        rc = sqlaintp( errorMsg, 1024, 80, pSqlca);
-        /* return code is the length of the errorMsg string */
-        if( rc > 0)
-        {   sprintf( sqlInfoToken, "%s\n", errorMsg);
-            strcat( sqlInfo, sqlInfoToken);
-        }
-
-        /* get SQLSTATE message */
-        rc = sqlogstt( sqlstateMsg, 1024, 80, pSqlca->sqlstate);
-        if (rc == 0)
-        {   sprintf( sqlInfoToken, "%s\n", sqlstateMsg);
-            strcat( sqlInfo, sqlInfoToken);
-        }
+	char  sqlstateMsg[1024];
+	char  errorMsg[1024];
 
 
-        if( pSqlca->sqlcode < 0)
-        {   sprintf( sqlInfoToken, "--- end error report ---\n");
-            strcat( sqlInfo, sqlInfoToken);
+	if (pSqlca->sqlcode != 0 && pSqlca->sqlcode != 100)
+	{
+		strcpy(sqlInfo, "");
 
-            printf("%s", sqlInfo);
-            return 1;
-        }
-        else
-        {   sprintf( sqlInfoToken, "--- end warning report ---\n");
-            strcat( sqlInfo, sqlInfoToken);
+		if( pSqlca->sqlcode < 0)
+		{
+			sprintf( sqlInfoToken, "\n---- error report ----\n");
+			strcat( sqlInfo, sqlInfoToken);
+		}
+		else
+		{
+			sprintf( sqlInfoToken, "\n---- warning report ----\n");
+			strcat( sqlInfo, sqlInfoToken);
+		} /* endif */
 
-            printf("%s", sqlInfo);
-            return 0;
-        } /* endif */
-    } /* endif */
+		sprintf( sqlInfoToken, "  app. message      = %s\n", appMsg);
+		strcat( sqlInfo, sqlInfoToken);
+		sprintf( sqlInfoToken, "  line              = %d\n", line);
+		strcat( sqlInfo, sqlInfoToken);
+		sprintf( sqlInfoToken, "  file              = %s\n", file);
+		strcat( sqlInfo, sqlInfoToken);
+		sprintf( sqlInfoToken, "  SQLCODE           = %d\n", pSqlca->sqlcode);
+		strcat( sqlInfo, sqlInfoToken);
 
-    return 0;
+		/* get error message */
+		rc = sqlaintp( errorMsg, 1024, 80, pSqlca);
+		/* return code is the length of the errorMsg string */
+		if( rc > 0)
+		{
+			sprintf( sqlInfoToken, "%s\n", errorMsg);
+			strcat( sqlInfo, sqlInfoToken);
+		}
+
+		/* get SQLSTATE message */
+		rc = sqlogstt( sqlstateMsg, 1024, 80, pSqlca->sqlstate);
+		if (rc == 0)
+		{
+			sprintf( sqlInfoToken, "%s\n", sqlstateMsg);
+			strcat( sqlInfo, sqlInfoToken);
+		}
+
+
+		if( pSqlca->sqlcode < 0)
+		{
+			sprintf( sqlInfoToken, "--- end error report ---\n");
+			strcat( sqlInfo, sqlInfoToken);
+
+			printf("%s", sqlInfo);
+			return 1;
+		}
+		else
+		{
+			sprintf( sqlInfoToken, "--- end warning report ---\n");
+			strcat( sqlInfo, sqlInfoToken);
+
+			printf("%s", sqlInfo);
+			return 0;
+		} /* endif */
+	} /* endif */
+
+	return 0;
 }
 
 void TransRollback( )
-{   struct sqlca sqlca;
-    int        rc = 0;
+{
+	struct sqlca sqlca;
+	int        rc = 0;
 
-    /* rollback the transaction */
-    printf( "\nRolling back the transaction ...\n") ;
-    EXEC SQL ROLLBACK;
-    rc = SqlInfoPrint( "ROLLBACK", &sqlca, __LINE__, __FILE__);
-    if( rc == 0)
-    {   printf( "The transaction was rolled back.\n") ;
-    }
+	/* rollback the transaction */
+	printf( "\nRolling back the transaction ...\n") ;
+	EXEC SQL ROLLBACK;
+	rc = SqlInfoPrint( "ROLLBACK", &sqlca, __LINE__, __FILE__);
+	if( rc == 0)
+	{
+		printf( "The transaction was rolled back.\n") ;
+	}
 
 }

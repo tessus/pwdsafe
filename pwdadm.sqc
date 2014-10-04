@@ -14,383 +14,398 @@
 #include "gchash.h"
 #endif
 
-#define	RELEASE	"1.10"
+#define RELEASE "1.10"
 
 EXEC SQL INCLUDE SQLCA;
 
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 
-   EXEC SQL BEGIN DECLARE SECTION;
-           char user[65];           // var for actual user
-           char pwd[65];            // host var for hashed pwd in pwdlogin
-           char enc_pwd[65];        // pwd entered
-           char enc_pwd2[65];       // pwd entered again
+	EXEC SQL BEGIN DECLARE SECTION;
+		char user[65];           // var for actual user
+		char pwd[65];            // host var for hashed pwd in pwdlogin
+		char enc_pwd[65];        // pwd entered
+		char enc_pwd2[65];       // pwd entered again
 
-           short admin;				// host var, if user is admin -> allow register new users
-           short menu;				// host var for menu flag
-           short there;				// host var to check if tables are there
-		   char huser[65];
-		   char username[65];
+		short admin;             // host var, if user is admin -> allow register new users
+		short menu;              // host var for menu flag
+		short there;             // host var to check if tables are there
+		char huser[65];
+		char username[65];
 
-           char uid[9];             // connection vars
-      	   char passwd[19];
-      	   char db[19];
-   EXEC SQL END DECLARE SECTION;
+		char uid[9];             // connection vars
+		char passwd[19];
+		char db[19];
+	EXEC SQL END DECLARE SECTION;
 
 #if defined (LINUX) || defined (DARWIN)
-   struct termios initialrsettings, newrsettings;
+	struct termios initialrsettings, newrsettings;
 #endif
 
-   unsigned int numsel = 999;       // menue var
-   unsigned int maxsel = 0;
-   struct sqlca sqlca;              // sqlca structure
-   int ch, i = 0;                   // vars for enc_pwd input
-   char tbspace[256];
-   char hst[1000];
-   char atext[4];
-   char mtext[4];
+	unsigned int numsel = 999;       // menue var
+	unsigned int maxsel = 0;
+	struct sqlca sqlca;              // sqlca structure
+	int ch, i = 0;                   // vars for enc_pwd input
+	char tbspace[256];
+	char hst[1000];
+	char atext[4];
+	char mtext[4];
 
-   switch( argc )
-   {
-	   case 2:
-	   case 4:
-	   		break;
-	   default:
-            printf ("\nUSAGE: %s database [userid passwd]\n\n", argv[0]);
-            return 1;
-            break;
-   }
+	switch( argc )
+	{
+		case 2:
+		case 4:
+			break;
+		default:
+			printf ("\nUSAGE: %s database [userid passwd]\n\n", argv[0]);
+			return 1;
+			break;
+	}
 
 
-   // init connection vars
+	// init connection vars
 
-   db[0] = '\0';
-   uid[0] = '\0';
-   passwd[0] = '\0';
+	db[0] = '\0';
+	uid[0] = '\0';
+	passwd[0] = '\0';
 
-   user[0] = '\0';
-   enc_pwd[0] = '\0';
-   enc_pwd2[0] = '\0';
+	user[0] = '\0';
+	enc_pwd[0] = '\0';
+	enc_pwd2[0] = '\0';
 
-   switch( argc )
-   {
-       case 2:
-          strcpy (db, argv[1]);
-          EXEC SQL CONNECT TO :db;
-          EMB_SQL_CHECK("CONNECT TO DB");
-          break;
-       case 4:
-          strcpy (db, argv[1]);
-          strcpy (uid, argv[2]);
-          strcpy (passwd, argv[3]);
-          EXEC SQL CONNECT TO :db USER :uid USING :passwd;
-          EMB_SQL_CHECK("CONNECT TO DB");
-          break;
-       default:
-          printf ("\nUSAGE: %s database [userid passwd]\n\n", argv[0]);
-          return 1;
-          break;
-   }
+	switch( argc )
+	{
+		case 2:
+			strcpy (db, argv[1]);
+			EXEC SQL CONNECT TO :db;
+			EMB_SQL_CHECK("CONNECT TO DB");
+			break;
+		case 4:
+			strcpy (db, argv[1]);
+			strcpy (uid, argv[2]);
+			strcpy (passwd, argv[3]);
+			EXEC SQL CONNECT TO :db USER :uid USING :passwd;
+			EMB_SQL_CHECK("CONNECT TO DB");
+			break;
+		default:
+			printf ("\nUSAGE: %s database [userid passwd]\n\n", argv[0]);
+			return 1;
+			break;
+	}
 
-   printf("\n\n");
+	printf("\n\n");
 
 #ifdef COMMIT_HASH
-    printf("PwdSafe Admin Tool v%s (%s)\n", RELEASE, COMMIT_HASH_ABBREV );
+	printf("PwdSafe Admin Tool v%s (%s)\n", RELEASE, COMMIT_HASH_ABBREV );
 #else
-    printf("PwdSafe Admin Tool v%s\n", RELEASE );
+	printf("PwdSafe Admin Tool v%s\n", RELEASE );
 #endif
 
-   do
-   {
-       numsel = 0;
-       printf("\n\n");
-       printf("********************************\n");
-       printf(" 1 - Register user\n");
-       printf(" 2 - Set admin flag for user\n");
-       printf(" 3 - Remove admin flag for user\n");
-       printf(" 4 - Set menu flag for user\n");
-       printf(" 5 - Remove menu flag for user\n");
-       printf(" 6 - List all users\n");
-       printf("\n   Enter 0 to exit.\n");
-       printf("********************************\n");
+	do
+	{
+		numsel = 0;
+		printf("\n\n");
+		printf("********************************\n");
+		printf(" 1 - Register user\n");
+		printf(" 2 - Set admin flag for user\n");
+		printf(" 3 - Remove admin flag for user\n");
+		printf(" 4 - Set menu flag for user\n");
+		printf(" 5 - Remove menu flag for user\n");
+		printf(" 6 - List all users\n");
+		printf("\n   Enter 0 to exit.\n");
+		printf("********************************\n");
 
-       printf("==> ");
+		printf("==> ");
 
-       fflush(stdin);
-       fscanf( stdin, "%u", &numsel);
-       maxsel = 6;			// Max menue sections
+		fflush(stdin);
+		fscanf( stdin, "%u", &numsel);
+		maxsel = 6;          // Max menue sections
 
-       if (numsel < 0 || numsel > maxsel)
-          printf("\nInvalid selection. Please try again.\n");
-       else
-       if (numsel != 0)
-       {
-          switch (numsel)
-	 	  {
-			 // Register new user
-			 case 1:
-			    user[0] = '\0';
-				enc_pwd[0] = '\0';
-				enc_pwd2[0] = '\0';
-                  
-			    printf( "\nUser: "); fscanf( stdin, "%s", user );
-	            i = 0;
-	            printf( "\nPlease enter the encryption password: " );
+		if (numsel < 0 || numsel > maxsel)
+			printf("\nInvalid selection. Please try again.\n");
+		else if (numsel != 0)
+		{
+			switch (numsel)
+			{
+				// Register new user
+				case 1:
+					user[0] = '\0';
+					enc_pwd[0] = '\0';
+					enc_pwd2[0] = '\0';
+
+					printf( "\nUser: ");
+					fscanf( stdin, "%s", user );
+					i = 0;
+					printf( "\nPlease enter the encryption password: " );
 
 #ifdef WIN32
-   do
-      {
-         ch = _getch();
-         switch( ch )
-         {
-   		     case 8:
-   		        if( i != 0 )
-   		        {
-   		    	   i=i-1;
-   		    	   printf( "d" );
-   		    	}
-   		        break;
-   		     case 13:
-   		        break;
-   		     default:
-   		        enc_pwd[i++] = ch;
-   		        printf( "*" );
-   		        break;
-   	     }
-      } while( ch != '\r' );
+					do
+					{
+						ch = _getch();
+						switch( ch )
+						{
+							case 8:
+								if( i != 0 )
+								{
+									i=i-1;
+									printf( "d" );
+								}
+								break;
+							case 13:
+								break;
+							default:
+								enc_pwd[i++] = ch;
+								printf( "*" );
+								break;
+						}
+					}
+					while( ch != '\r' );
 
-   enc_pwd[i] = '\0';
+					enc_pwd[i] = '\0';
 #endif
 
 #if defined (LINUX) || defined (DARWIN)
-   enc_pwd[0] = '\0';
-   tcgetattr( fileno(stdin), &initialrsettings );
-   newrsettings = initialrsettings;
-   newrsettings.c_lflag &= ~ECHO;
-   tcsetattr( fileno(stdin), TCSAFLUSH, &newrsettings );
-   fscanf( stdin, "%s", enc_pwd );
-   tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
+					enc_pwd[0] = '\0';
+					tcgetattr( fileno(stdin), &initialrsettings );
+					newrsettings = initialrsettings;
+					newrsettings.c_lflag &= ~ECHO;
+					tcsetattr( fileno(stdin), TCSAFLUSH, &newrsettings );
+					fscanf( stdin, "%s", enc_pwd );
+					tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
 #endif
 
 
-				if(strlen(enc_pwd) < 6)
-				{
-				   printf( "\n\nPassword has to be at least 6 bytes.\n" );
-				   break;
-				}
+					if(strlen(enc_pwd) < 6)
+					{
+						printf( "\n\nPassword has to be at least 6 bytes.\n" );
+						break;
+					}
 
-				i = 0;
-				printf( "\nPlease enter the encryption password again: " );
+					i = 0;
+					printf( "\nPlease enter the encryption password again: " );
 
 #ifdef WIN32
-   do
-      {
-         ch = _getch();
-         switch( ch )
-         {
-   		     case 8:
-   		        if( i != 0 )
-   		        {
-   		    	   i=i-1;
-   		    	   printf( "d" );
-   		    	}
-   		        break;
-   		     case 13:
-   		        break;
-   		     default:
-   		        enc_pwd2[i++] = ch;
-   		        printf( "*" );
-   		        break;
-   	     }
-      } while( ch != '\r' );
+					do
+					{
+						ch = _getch();
+						switch( ch )
+						{
+							case 8:
+								if( i != 0 )
+								{
+									i=i-1;
+									printf( "d" );
+								}
+								break;
+							case 13:
+								break;
+							default:
+								enc_pwd2[i++] = ch;
+								printf( "*" );
+								break;
+						}
+					}
+					while( ch != '\r' );
 
-   enc_pwd2[i] = '\0';
+					enc_pwd2[i] = '\0';
 #endif
 
 #if defined (LINUX) || defined (DARWIN)
-   enc_pwd2[0] = '\0';
-   tcgetattr( fileno(stdin), &initialrsettings );
-   newrsettings = initialrsettings;
-   newrsettings.c_lflag &= ~ECHO;
-   tcsetattr( fileno(stdin), TCSAFLUSH, &newrsettings );
-   fscanf( stdin, "%s", enc_pwd2 );
-   tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
+					enc_pwd2[0] = '\0';
+					tcgetattr( fileno(stdin), &initialrsettings );
+					newrsettings = initialrsettings;
+					newrsettings.c_lflag &= ~ECHO;
+					tcsetattr( fileno(stdin), TCSAFLUSH, &newrsettings );
+					fscanf( stdin, "%s", enc_pwd2 );
+					tcsetattr( fileno(stdin), TCSANOW, &initialrsettings );
 #endif
 
-				if( strcmp( enc_pwd, enc_pwd2 ) != 0 )
-				{
-				   printf( "\n\nPasswords do not match.\n" );
-				   break;
-			    }
+					if( strcmp( enc_pwd, enc_pwd2 ) != 0 )
+					{
+						printf( "\n\nPasswords do not match.\n" );
+						break;
+					}
 
-				EXEC SQL INSERT INTO pwdsafe.pwdlogin (usr,pwd) values
-				     (:user, encrypt(:enc_pwd,:enc_pwd));
+					EXEC SQL INSERT INTO pwdsafe.pwdlogin (usr,pwd) values
+					(:user, encrypt(:enc_pwd,:enc_pwd));
 
-				// -803 duplicate rows - constraint violation
+					// -803 duplicate rows - constraint violation
 
-				if( sqlca.sqlcode == -803 )
-				{
-				  printf( "\n\nUser already exists.\n" );
-				  EXEC SQL ROLLBACK;
-				}
-				else {
-				  EMB_SQL_CHECK("INSERT");
-				  printf( "\n\nUser registered.\n" );
-				  EXEC SQL COMMIT;
-               }
+					if( sqlca.sqlcode == -803 )
+					{
+						printf( "\n\nUser already exists.\n" );
+						EXEC SQL ROLLBACK;
+					}
+					else
+					{
+						EMB_SQL_CHECK("INSERT");
+						printf( "\n\nUser registered.\n" );
+						EXEC SQL COMMIT;
+					}
 
-			   break;
+					break;
 
-			 // Set admin flag for user
-			 case 2:
+				// Set admin flag for user
+				case 2:
 
-                huser[0] = '\0';
-                fflush(stdin);
-	            printf( "\nUser: " ); fscanf( stdin, "%s", huser );
+					huser[0] = '\0';
+					fflush(stdin);
+					printf( "\nUser: " );
+					fscanf( stdin, "%s", huser );
 
-			    EXEC SQL UPDATE pwdsafe.pwdlogin SET admin = 1 WHERE usr = :huser;
+					EXEC SQL UPDATE pwdsafe.pwdlogin SET admin = 1 WHERE usr = :huser;
 
-                switch( sqlca.sqlcode )
-                {
-					case 100:
-					   printf( "\nUser does not exist.\n" );
-					   EXEC SQL ROLLBACK;
-					   break;
-					default:
-					   printf( "\nAdmin flag set.\n" );
-					   EXEC SQL COMMIT;
-					   break;
-				}
+					switch( sqlca.sqlcode )
+					{
+						case 100:
+							printf( "\nUser does not exist.\n" );
+							EXEC SQL ROLLBACK;
+							break;
+						default:
+							printf( "\nAdmin flag set.\n" );
+							EXEC SQL COMMIT;
+							break;
+					}
 
-         		break;
+					break;
 
-             // Remove admin flag for user
- 			 case 3:
+				// Remove admin flag for user
+				case 3:
 
-                huser[0] = '\0';
-                fflush(stdin);
-	            printf( "\nUser: " ); fscanf( stdin, "%s", huser );
+					huser[0] = '\0';
+					fflush(stdin);
+					printf( "\nUser: " );
+					fscanf( stdin, "%s", huser );
 
- 			    EXEC SQL UPDATE pwdsafe.pwdlogin SET admin = 0 WHERE usr = :huser;
+					EXEC SQL UPDATE pwdsafe.pwdlogin SET admin = 0 WHERE usr = :huser;
 
-                switch( sqlca.sqlcode )
-                {
- 					case 100:
- 					   printf( "\nUser does not exist.\n" );
- 					   EXEC SQL ROLLBACK;
- 					   break;
-					default:
- 					   printf( "\nAdmin flag removed.\n" );
- 					   EXEC SQL COMMIT;
- 					   break;
- 				}
+					switch( sqlca.sqlcode )
+					{
+						case 100:
+							printf( "\nUser does not exist.\n" );
+							EXEC SQL ROLLBACK;
+							break;
+						default:
+							printf( "\nAdmin flag removed.\n" );
+							EXEC SQL COMMIT;
+							break;
+					}
 
-         		break;
-         		
-         	 // Set menu flag for user
-			 case 4:
+					break;
 
-                huser[0] = '\0';
-                fflush(stdin);
-	            printf( "\nUser: " ); fscanf( stdin, "%s", huser );
+				// Set menu flag for user
+				case 4:
 
-			    EXEC SQL UPDATE pwdsafe.pwdlogin SET menu = 1 WHERE usr = :huser;
+					huser[0] = '\0';
+					fflush(stdin);
+					printf( "\nUser: " );
+					fscanf( stdin, "%s", huser );
 
-                switch( sqlca.sqlcode )
-                {
-					case 100:
-					   printf( "\nUser does not exist.\n" );
-					   EXEC SQL ROLLBACK;
-					   break;
-					default:
-					   printf( "\nMenu flag set.\n" );
-					   EXEC SQL COMMIT;
-					   break;
-				}
+					EXEC SQL UPDATE pwdsafe.pwdlogin SET menu = 1 WHERE usr = :huser;
 
-         		break;
+					switch( sqlca.sqlcode )
+					{
+						case 100:
+							printf( "\nUser does not exist.\n" );
+							EXEC SQL ROLLBACK;
+							break;
+						default:
+							printf( "\nMenu flag set.\n" );
+							EXEC SQL COMMIT;
+							break;
+					}
 
-             // Remove menu flag for user
- 			 case 5:
+					break;
 
-                huser[0] = '\0';
-                fflush(stdin);
-	            printf( "\nUser: " ); fscanf( stdin, "%s", huser );
+				// Remove menu flag for user
+				case 5:
 
- 			    EXEC SQL UPDATE pwdsafe.pwdlogin SET menu = 0 WHERE usr = :huser;
+					huser[0] = '\0';
+					fflush(stdin);
+					printf( "\nUser: " );
+					fscanf( stdin, "%s", huser );
 
-                switch( sqlca.sqlcode )
-                {
- 					case 100:
- 					   printf( "\nUser does not exist.\n" );
- 					   EXEC SQL ROLLBACK;
- 					   break;
-					default:
- 					   printf( "\nMenu flag removed.\n" );
- 					   EXEC SQL COMMIT;
- 					   break;
- 				}
+					EXEC SQL UPDATE pwdsafe.pwdlogin SET menu = 0 WHERE usr = :huser;
 
-         		break;
+					switch( sqlca.sqlcode )
+					{
+						case 100:
+							printf( "\nUser does not exist.\n" );
+							EXEC SQL ROLLBACK;
+							break;
+						default:
+							printf( "\nMenu flag removed.\n" );
+							EXEC SQL COMMIT;
+							break;
+					}
 
-
-             // List all users
-             case 6:
-
-   				EXEC SQL DECLARE c1 CURSOR FOR
-				        SELECT usr, admin, menu FROM pwdsafe.pwdlogin ORDER BY usr;
-
-				EXEC SQL OPEN c1;
-				EMB_SQL_CHECK("OPEN CURSOR");
-				
-				printf( "\n%-32s %-5s   %-5s\n", "Username", "Admin", "Menu" );
-
-				do {
-				   EXEC SQL FETCH c1 INTO :username, :admin, :menu;
-
-				   if (SQLCODE != 0) break;
-
-				   atext[0] = '\0';
-				   mtext[0] = '\0';  
-
-				   if(admin != 0)
-				   {
-					   strcpy( atext, "yes" );
-				   } else {
-					   strcpy( atext, "no" );
-				   }
-				   if(menu != 0)
-				   {
-					   strcpy( mtext, "yes" );
-				   } else {
-					   strcpy( mtext, "no" );
-				   }
+					break;
 
 
-				   printf( "\n%-32s %-5s   %-5s", username, atext, mtext );
+				// List all users
+				case 6:
 
-				} while ( 1 );
+					EXEC SQL DECLARE c1 CURSOR FOR
+					  SELECT usr, admin, menu FROM pwdsafe.pwdlogin ORDER BY usr;
 
-				EXEC SQL CLOSE c1;
-                EMB_SQL_CHECK("CLOSE CURSOR");
+					EXEC SQL OPEN c1;
+					EMB_SQL_CHECK("OPEN CURSOR");
 
-                break;
+					printf( "\n%-32s %-5s   %-5s\n", "Username", "Admin", "Menu" );
+
+					do
+					{
+						EXEC SQL FETCH c1 INTO :username, :admin, :menu;
+
+						if (SQLCODE != 0) break;
+
+						atext[0] = '\0';
+						mtext[0] = '\0';
+
+						if(admin != 0)
+						{
+							strcpy( atext, "yes" );
+						}
+						else
+						{
+							strcpy( atext, "no" );
+						}
+						if(menu != 0)
+						{
+							strcpy( mtext, "yes" );
+						}
+						else
+						{
+							strcpy( mtext, "no" );
+						}
 
 
-             default:
-		        printf("\nError in Reset... should not happen... exiting...\n");
-		        exit(99);
-		        break;
+						printf( "\n%-32s %-5s   %-5s", username, atext, mtext );
 
-          }  /* switch numsel */
+					}
+					while ( 1 );
 
-       } /* if */
+					EXEC SQL CLOSE c1;
+					EMB_SQL_CHECK("CLOSE CURSOR");
 
-   } while (numsel != 0);
+					break;
 
 
-   EXEC SQL CONNECT RESET;
-   EMB_SQL_CHECK("CONNECT RESET");
-   return 0;
+				default:
+					printf("\nError in Reset... should not happen... exiting...\n");
+					exit(99);
+					break;
+
+			}  /* switch numsel */
+
+		} /* if */
+
+	}
+	while (numsel != 0);
+
+
+	EXEC SQL CONNECT RESET;
+	EMB_SQL_CHECK("CONNECT RESET");
+	return 0;
 }
