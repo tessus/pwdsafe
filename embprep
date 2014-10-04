@@ -5,7 +5,7 @@
 #
 # Usage: embprep <prog_name> [ <db_name> [ <userid> <password> ]]
 
-BITWIDTH=`LANG=C db2level | awk '/bits/{print $5}' | cut -b 2-3`
+BITWIDTH=`LANG=C db2level |sed -n '/bits/{s/.* \([^ ]*\) bits.*/\1/p;}' |cut -b 2-3`
 SUFFIX2=`uname -s | cut -b -1`
 SUFFIX=$SUFFIX2$BITWIDTH
 

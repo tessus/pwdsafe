@@ -63,7 +63,7 @@ fi
 LIB="lib"
 
 # Determine our bitwidth (32 or 64)
-BITWIDTH=`LANG=C db2level | awk '/bits/{print $5}' | cut -b 2-3`
+BITWIDTH=`LANG=C db2level |sed -n '/bits/{s/.* \([^ ]*\) bits.*/\1/p;}' |cut -b 2-3`
 
 LIB=lib${BITWIDTH}
 
