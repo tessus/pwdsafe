@@ -10,8 +10,11 @@
 #endif
 #include <ctype.h>
 #include "utilemb.h"
+#if defined (LINUX) || defined (DARWIN)
+#include "gchash.h"
+#endif
 
-#define	RELEASE	"1.9"
+#define	RELEASE	"1.10"
 
 EXEC SQL INCLUDE SQLCA;
 
@@ -91,8 +94,12 @@ int main(int argc, char *argv[]) {
    }
 
    printf("\n\n");
-   printf("PwdSafe Admin Tool v%s\n",RELEASE);
-   #printf("PwdSafe Admin Tool v%s (%s)\n",RELEASE,REVISION);
+
+#ifdef COMMIT_HASH
+    printf("PwdSafe Admin Tool v%s (%s)\n", RELEASE, COMMIT_HASH_ABBREV );
+#else
+    printf("PwdSafe Admin Tool v%s\n", RELEASE );
+#endif
 
    do
    {
