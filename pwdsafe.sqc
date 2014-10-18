@@ -17,39 +17,40 @@
 #include "gchash.h"
 #endif
 
-#define	RELEASE	"1.15"
+#define	RELEASE	"1.16"
 
-#define MAX_ACC_LEN		64
-#define MAX_UID_LEN		64
-#define MAX_PWD_LEN		512
-#define MAX_DESC_LEN	2048
-#define MAX_CMD_LEN		2
+#define MAX_ACC_LEN     64
+#define MAX_UID_LEN     64
+#define MAX_PWD_LEN     512
+#define MAX_DESC_LEN    2048
+#define MAX_CMD_LEN     2
 
-#define MAX_PATH_LEN	255
+#define MAX_PATH_LEN    255
 
-#define M_ADD			1
-#define M_SEARCH		2
-#define M_SEARCH_EXACT	3
-#define M_UPDATE		4
-#define M_DELETE		5
-#define M_LIST			6
-#define M_PRINT_CSV		7
-#define M_PRINT_TXT		8
-#define M_CHANGE		9
-#define M_EXPORT		10
-#define M_EXPORT_MSEC	11
-#define M_IMPORT		12
-#define M_IMPORT_DEL	13
+#define M_ADD           1
+#define M_SEARCH        2
+#define M_SEARCH_EXACT  3
+#define M_UPDATE        4
+#define M_DELETE        5
+#define M_LIST          6
+#define M_PRINT_CSV     7
+#define M_PRINT_TXT     8
+#define M_CHANGE        9
+#define M_EXPORT        10
+#define M_EXPORT_MSEC   11
+#define M_IMPORT        12
+#define M_IMPORT_DEL    13
 #define M_SWITCH_USER   14
-#define M_REGISTER		15
-#define M_MENU			80
-#define	M_MENU_ON		81
-#define M_MENU_OFF		82
-#define M_HELP			85
-#define M_DEBUG			88
-#define M_EXIT			0
-#define M_INVALID		-1
-#define M_MAX			M_REGISTER - 1
+#define M_REGISTER      15
+#define M_MENU          80
+#define	M_MENU_ON       81
+#define M_MENU_OFF      82
+#define M_HELP          85
+#define M_DEBUG         88
+#define M_ENTER         90
+#define M_EXIT          0
+#define M_INVALID       -1
+#define M_MAX           M_REGISTER - 1
 
 int DataExport(char *, char *, char *, int);
 int DataImport(char *);
@@ -66,14 +67,14 @@ int main(int argc, char *argv[])
 	EXEC SQL BEGIN DECLARE SECTION;
 		char reguser[65];
 		char regpwd[65];
-		char user[65];				// var for actual user
-		char huser[65];				// helper var for switch user
-		char pwd[65];				// host var for hashed pwd in pwdsafe.pwdlogin
-		short admin;				// host var, if user is admin -> allow register new users
-		short hadmin;				// helper var for switch user
-		short menu;					// host var for menu flag
-		short hmenu;				// helper var for switch user
-		short there;				// host var to check if tables are there
+		char user[65];              // var for actual user
+		char huser[65];             // helper var for switch user
+		char pwd[65];               // host var for hashed pwd in pwdsafe.pwdlogin
+		short admin;                // host var, if user is admin -> allow register new users
+		short hadmin;               // helper var for switch user
+		short menu;                 // host var for menu flag
+		short hmenu;                // helper var for switch user
+		short there;                // host var to check if tables are there
 		char account[65];
 		char userid[65];
 		char password[513];
@@ -82,14 +83,14 @@ int main(int argc, char *argv[])
 		char huserid[65];
 		char hpassword[513];
 		char hdescription[2049];
-		char enc_pwd[65];			// pwd entered
-		char henc_pwd[65];			// helper pwd entered for switch user
-		char acc[65];				// host var for where clause
+		char enc_pwd[65];           // pwd entered
+		char henc_pwd[65];          // helper pwd entered for switch user
+		char acc[65];               // host var for where clause
 		char ts[32];
-		short int tsind;			// indicator var for ts
-		short int recind[2];		// indicator var for password and description
+		short int tsind;            // indicator var for ts
+		short int recind[2];        // indicator var for password and description
 
-		char uid[129];				// connection vars
+		char uid[129];              // connection vars
 		char passwd[19];
 		char db[19];
 	EXEC SQL END DECLARE SECTION;
@@ -98,17 +99,17 @@ int main(int argc, char *argv[])
 	struct termios initialrsettings, newrsettings;
 #endif
 
-	int maxsel, numsel = 0;			// menue var;
-	char numselh[5];				// menue help var
-	char *cmdline;					// line entered in menu
-	char cmd[5];					// command var
+	int maxsel, numsel = 0;         // menue var;
+	char numselh[5];                // menue help var
+	char *cmdline;                  // line entered in menu
+	char cmd[5];                    // command var
 
-	char cmdaccount[MAX_ACC_LEN+1];	// var for account, if entered in the menu
-	struct sqlca sqlca;				// sqlca structure
-	int ch, i = 0;					// vars for enc_pwd input
+	char cmdaccount[MAX_ACC_LEN+1]; // var for account, if entered in the menu
+	struct sqlca sqlca;             // sqlca structure
+	int ch, i = 0;                  // vars for enc_pwd input
 	char del[5], upd[5], tmp[5];    // delete and update var (y/n)
-	FILE *fp;						// filepointer fp
-	char filename[MAX_PATH_LEN+1];	// var for filename
+	FILE *fp;                       // filepointer fp
+	char filename[MAX_PATH_LEN+1];  // var for filename
 	char prompt, preview;
 	int sync = 0;
 	int rc = 0;
@@ -378,35 +379,34 @@ int main(int argc, char *argv[])
 		}
 		else if( cmd[0] == 'D' )
 		{
-			numsel = M_DEBUG;
-			maxsel = M_DEBUG;
+			numsel = maxsel = M_DEBUG;
 		}
 		else if( cmd[0] == 'm' )
 		{
-			numsel = M_MENU;
-			maxsel = M_MENU;
+			numsel = maxsel = M_MENU;
 			cmdline+=2;
 			strcpy( cmdaccount, cmdline);
 
 			if( cmd[1] == '1' || cmdaccount[0] == '1' )
 			{
-				numsel = M_MENU_ON;
-				maxsel = M_MENU_ON;
+				numsel = maxsel = M_MENU_ON;
 			}
 			if( cmd[1] == '0' || cmdaccount[0] == '0' )
 			{
-				numsel = M_MENU_OFF;
-				maxsel = M_MENU_OFF;
+				numsel = maxsel = M_MENU_OFF;
 			}
 		}
 		else if( cmd[0] == 'h' )
 		{
-			numsel = M_HELP;
-			maxsel = M_HELP;
+			numsel = maxsel = M_HELP;
 		}
 		else if( cmd[0] == 'x' )
 		{
 			numsel = M_EXIT;
+		}
+		else if( cmd[0] == '\0' )
+		{
+			numsel = maxsel = M_ENTER;
 		}
 		else
 		{
@@ -423,6 +423,14 @@ int main(int argc, char *argv[])
 		{
 			switch (numsel)
 			{
+					// Scroll down 80 lines
+				case M_ENTER:
+					printf( "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" );
+					printf( "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" );
+					printf( "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" );
+					printf( "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" );
+					break;
+
 					// Switch user
 				case M_SWITCH_USER:
 					if( strlen(cmdline) == 0 )
