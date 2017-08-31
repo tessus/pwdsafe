@@ -17,40 +17,40 @@
 #include "gchash.h"
 #endif
 
-#define	RELEASE	"1.16"
+#define	RELEASE	"1.17"
 
-#define MAX_ACC_LEN     64
-#define MAX_UID_LEN     64
-#define MAX_PWD_LEN     512
-#define MAX_DESC_LEN    2048
-#define MAX_CMD_LEN     2
+#define MAX_ACC_LEN        64
+#define MAX_UID_LEN        64
+#define MAX_PWD_LEN        512
+#define MAX_DESC_LEN       2048
+#define MAX_CMD_LEN        2
 
-#define MAX_PATH_LEN    255
+#define MAX_PATH_LEN       255
 
-#define M_ADD           1
-#define M_SEARCH        2
-#define M_SEARCH_EXACT  3
-#define M_UPDATE        4
-#define M_DELETE        5
-#define M_LIST          6
-#define M_PRINT_CSV     7
-#define M_PRINT_TXT     8
-#define M_CHANGE        9
-#define M_EXPORT        10
-#define M_EXPORT_MSEC   11
-#define M_IMPORT        12
-#define M_IMPORT_DEL    13
-#define M_SWITCH_USER   14
-#define M_REGISTER      15
-#define M_MENU          80
-#define	M_MENU_ON       81
-#define M_MENU_OFF      82
-#define M_HELP          85
-#define M_DEBUG         88
-#define M_ENTER         90
-#define M_EXIT          0
-#define M_INVALID       -1
-#define M_MAX           M_REGISTER - 1
+#define M_ADD              1
+#define M_SEARCH           2
+#define M_SEARCH_EXACT     3
+#define M_UPDATE           4
+#define M_DELETE           5
+#define M_LIST             6
+#define M_PRINT_CSV        7
+#define M_PRINT_TXT        8
+#define M_CHANGE           9
+#define M_EXPORT           10
+#define M_EXPORT_KEEPASS   11
+#define M_IMPORT           12
+#define M_IMPORT_DEL       13
+#define M_SWITCH_USER      14
+#define M_REGISTER         15
+#define M_MENU             80
+#define M_MENU_ON          81
+#define M_MENU_OFF         82
+#define M_HELP             85
+#define M_DEBUG            88
+#define M_ENTER            90
+#define M_EXIT             0
+#define M_INVALID          -1
+#define M_MAX              M_REGISTER - 1
 
 int DataExport(char *, char *, char *, int);
 int DataImport(char *);
@@ -350,9 +350,9 @@ int main(int argc, char *argv[])
 			numsel = M_EXPORT;
 			cmdline+=2;
 
-			if( cmd[1] == 'm' )
+			if( cmd[1] == 'k' )
 			{
-				numsel = M_EXPORT_MSEC;
+				numsel = M_EXPORT_KEEPASS;
 				cmdline+=1;
 			}
 
@@ -1247,7 +1247,7 @@ int main(int argc, char *argv[])
 					// Export for sync
 					// Export for mSecure
 				case M_EXPORT:
-				case M_EXPORT_MSEC:
+				case M_EXPORT_KEEPASS:
 					if( strlen(cmdline) == 0 )
 					{
 						printf( "\nEnter [path]filename: " );
@@ -1654,9 +1654,10 @@ int DataExport(char *dataFileName, char *user, char *enc_pwd, int sel)
 	{
 		sprintf( actionString, "SELECT * FROM pwdsafe.pwdlist WHERE usr = '%s'", user );
 	}
-	else if( sel == M_EXPORT_MSEC )
+	else if( sel == M_EXPORT_KEEPASS )
 	{
-		sprintf( actionString, "select case usr when 'tessus' then 'Personal' else ucase(usr) end, 'PwdSafe', account, description, userid, decrypt_char(password, '%s'), ts from pwdsafe.pwdlist where usr = '%s' order by account", enc_pwd, user );
+		// "Group","Title","Username","Password","URL","Notes"
+		sprintf( actionString, "select usr, account, userid, decrypt_char(password, '%s'), '-', description, ts from pwdsafe.pwdlist where usr = '%s' order by account", enc_pwd, user );
 	}
 	pAction = (struct sqllob *)malloc(sizeof(sqluint32) +
 	                                  sizeof(actionString) + 1);
@@ -1673,7 +1674,7 @@ int DataExport(char *dataFileName, char *user, char *enc_pwd, int sel)
 	{
 		exportParmStruct.piFileType    = SQL_IXF;
 	}
-	else if( sel == M_EXPORT_MSEC )
+	else if( sel == M_EXPORT_KEEPASS )
 	{
 		exportParmStruct.piFileType    = SQL_DEL;
 	}
@@ -1795,7 +1796,7 @@ void print_menu( int admin )
 	printf(" 8 | pp - Print all entries to file\n" );
 	printf(" 9 | c  - Change login password\n" );
 	printf("10 | e  - Export for sync\n" );
-	printf("11 | em - Export for mSecure\n" );
+	printf("11 | ek - Export for KeePass\n" );
 	printf("12 | i  - Import and sync\n" );
 	printf("13 | id - Import and delete\n" );
 	printf("14 | su - Switch user\n" );
@@ -1826,7 +1827,7 @@ void print_help( int admin )
 	printf("c                Change login password\n" );
 	printf("\n");
 	printf("e  [filename]    Export for sync\n" );
-	printf("em [filename]    Export for mSecure\n" );
+	printf("ek [filename]    Export for KeePass\n" );
 	printf("i  [filename]    Import and sync\n" );
 	printf("id [filename]    Import and delete\n" );
 	printf("\n");
