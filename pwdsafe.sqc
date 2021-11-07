@@ -17,7 +17,7 @@
 #include "gchash.h"
 #endif
 
-#define	RELEASE	"1.17"
+#define	RELEASE	"1.18"
 
 #define MAX_ACC_LEN        64
 #define MAX_UID_LEN        64
@@ -1657,7 +1657,7 @@ int DataExport(char *dataFileName, char *user, char *enc_pwd, int sel)
 	else if( sel == M_EXPORT_KEEPASS )
 	{
 		// "Group","Title","Username","Password","URL","Notes"
-		sprintf( actionString, "select usr, account, userid, decrypt_char(password, '%s'), '-', description, ts from pwdsafe.pwdlist where usr = '%s' order by account", enc_pwd, user );
+		sprintf( actionString, "select usr, account, userid, decrypt_char(password, '%s'), '-', description, (char(date(ts),jis) || ' ' || char(time(ts),jis)) as ts from pwdsafe.pwdlist where usr = '%s' order by account", enc_pwd, user );
 	}
 	pAction = (struct sqllob *)malloc(sizeof(sqluint32) +
 	                                  sizeof(actionString) + 1);
