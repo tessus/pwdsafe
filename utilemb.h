@@ -2,7 +2,7 @@
 extern "C" {
 #endif
 
-int rc;
+//int rc;
 #define EMB_SQL_CHECK( MSG_STR )                               \
     rc = SqlInfoPrint( MSG_STR, &sqlca, __LINE__, __FILE__) ;  \
     if ( rc != 0 )                                             \

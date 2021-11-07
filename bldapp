@@ -104,6 +104,7 @@ else
 fi
 
 # Compile the program.
+#echo $CC $EXTRA_C_FLAGS -I$DB2PATH/include -c $1.c
 $CC $EXTRA_C_FLAGS -I$DB2PATH/include -c $1.c
 
 if [ -f $1".sqc" ]
